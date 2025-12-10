@@ -28,10 +28,10 @@
         }
         .container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
             gap: 20px;
             width: 100%;
-            max-width: 1200px;
+            max-width: 1400px;
         }
         .card {
             background: var(--panel-bg);
@@ -68,7 +68,7 @@
             color: black;
             box-shadow: 0 0 15px var(--neon-green);
         }
-        input, select {
+        input, select, textarea {
             background: #222;
             border: 1px solid #444;
             color: white;
@@ -78,6 +78,11 @@
             box-sizing: border-box;
             font-family: inherit;
         }
+        textarea {
+            height: 100px;
+            font-size: 0.8em;
+            color: var(--neon-green);
+        }
         .result {
             margin-top: 15px;
             padding: 10px;
@@ -86,9 +91,30 @@
             min-height: 50px;
             white-space: pre-wrap;
             font-size: 0.9em;
+            max-height: 300px;
+            overflow-y: auto;
         }
         .anomaly {
             color: var(--neon-pink);
+        }
+        .mode-switch {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #333;
+        }
+        .chart-container {
+            width: 100%;
+            height: 150px;
+            background: #080808;
+            border: 1px solid #333;
+            margin-top: 10px;
+            position: relative;
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
         }
     </style>
 </head>
@@ -99,16 +125,36 @@
         <!-- DECISION TOOL -->
         <div class="card">
             <h2>Quantum Decision</h2>
-            <label>Options (comma separated)</label>
-            <input type="text" id="decisionOptions" placeholder="Yes, No, Maybe">
+            <div class="mode-switch">
+                <label><input type="radio" name="dMode" value="simple" checked onchange="toggleDecisionMode()"> Simple List</label>
+                <label><input type="radio" name="dMode" value="tree" onchange="toggleDecisionMode()"> Decision Tree (JSON)</label>
+            </div>
+
+            <div id="dSimpleInput">
+                <label>Options (comma separated)</label>
+                <input type="text" id="decisionOptions" placeholder="Yes, No, Maybe">
+                <label>Weights (Optional, comma separated floats)</label>
+                <input type="text" id="decisionWeights" placeholder="1.0, 0.5, 2.0">
+            </div>
+
+            <div id="dTreeInput" style="display:none;">
+                <label>Paste Tree JSON Structure</label>
+                <textarea id="decisionTreeJson" placeholder='{"root_node_id": "start", "nodes": {...}}'></textarea>
+                <button onclick="loadExampleTree()" style="font-size:0.8em; padding:5px; margin-bottom:10px;">Load Example Template</button>
+            </div>
+
             <label>Simulations</label>
             <select id="decisionSims">
                 <option value="1000">1,000</option>
                 <option value="100000">100,000</option>
                 <option value="1000000">1,000,000</option>
             </select>
-            <button onclick="runDecision()">INITIATE</button>
+            <button onclick="runDecision()">INITIATE SIMULATION</button>
+
             <div id="decisionResult" class="result">Waiting for entropy...</div>
+            <div class="chart-container" id="decisionChartContainer" style="display:none;">
+                <canvas id="decisionCanvas"></canvas>
+            </div>
         </div>
 
         <!-- GEOLOCATION TOOL -->
@@ -160,39 +206,169 @@
     <script>
         let currentFengShuiData = null;
 
+        function toggleDecisionMode() {
+            const mode = document.querySelector('input[name="dMode"]:checked').value;
+            document.getElementById('dSimpleInput').style.display = mode === 'simple' ? 'block' : 'none';
+            document.getElementById('dTreeInput').style.display = mode === 'tree' ? 'block' : 'none';
+        }
+
+        function loadExampleTree() {
+            const example = {
+                "root_node_id": "start",
+                "nodes": {
+                    "start": {
+                        "id": "start",
+                        "question": "Should I change my career?",
+                        "options": [
+                            { "text": "Yes", "next_node_id": "yes_path" },
+                            { "text": "No", "next_node_id": "no_path" }
+                        ]
+                    },
+                    "yes_path": {
+                        "id": "yes_path",
+                        "question": "What field?",
+                        "options": [
+                            { "text": "Tech", "weight": 1.5 },
+                            { "text": "Art", "weight": 1.0 }
+                        ]
+                    },
+                    "no_path": {
+                        "id": "no_path",
+                        "question": "Wait for how long?",
+                        "options": [
+                            { "text": "1 Year" },
+                            { "text": "5 Years" }
+                        ]
+                    }
+                }
+            };
+            document.getElementById('decisionTreeJson').value = JSON.stringify(example, null, 2);
+        }
+
         async function runDecision() {
             const resultDiv = document.getElementById('decisionResult');
-            resultDiv.innerHTML = "Fetching Quantum Entropy... (This may take a moment)";
+            const canvasContainer = document.getElementById('decisionChartContainer');
+            const canvas = document.getElementById('decisionCanvas');
 
-            const options = document.getElementById('decisionOptions').value.split(',').map(s => s.trim()).filter(s => s);
-            if (options.length < 2) {
-                resultDiv.innerText = "Please enter at least 2 options.";
-                return;
-            }
+            resultDiv.innerHTML = "Fetching Quantum Entropy... (This may take a moment)";
+            canvasContainer.style.display = 'none';
+
+            const mode = document.querySelector('input[name="dMode"]:checked').value;
             const sims = parseInt(document.getElementById('decisionSims').value);
+
+            let payload = { simulation_count: sims };
+
+            if (mode === 'simple') {
+                const options = document.getElementById('decisionOptions').value.split(',').map(s => s.trim()).filter(s => s);
+                if (options.length < 2) {
+                    resultDiv.innerText = "Please enter at least 2 options.";
+                    return;
+                }
+                const weightsStr = document.getElementById('decisionWeights').value;
+                if (weightsStr.trim()) {
+                    payload.weights = weightsStr.split(',').map(s => parseFloat(s.trim()));
+                }
+                payload.options = options;
+            } else {
+                try {
+                    payload.tree = JSON.parse(document.getElementById('decisionTreeJson').value);
+                } catch (e) {
+                    resultDiv.innerText = "Invalid JSON Tree: " + e.message;
+                    return;
+                }
+            }
 
             try {
                 const response = await fetch('/api/tools/decision', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ options, simulation_count: sims })
+                    body: JSON.stringify(payload)
                 });
                 const data = await response.json();
 
+                if (data.error) throw new Error(data.error);
+
                 let html = `<strong>WINNER: ${data.winner}</strong><br>`;
-                html += `Distribution:<br>`;
-                for (const [opt, count] of Object.entries(data.distribution)) {
-                    html += `- ${opt}: ${count}<br>`;
+
+                if (data.mode === 'Simple') {
+                    html += `Distribution:<br>`;
+                    for (const [opt, count] of Object.entries(data.distribution)) {
+                        const pct = ((count / sims) * 100).toFixed(2);
+                        html += `- ${opt}: ${count} (${pct}%)<br>`;
+                    }
+                    if (data.anomalies && data.anomalies.length > 0) {
+                        html += `<br><span class="anomaly">ANOMALIES DETECTED:</span><br>`;
+                        data.anomalies.forEach(a => html += `> ${a}<br>`);
+                    }
+
+                    // Render Chart
+                    if (data.time_series) {
+                        canvasContainer.style.display = 'block';
+                        renderChart(canvas, data.time_series, Object.keys(data.distribution));
+                    }
+
+                } else {
+                    html += `Most Probable Path (Hits: ${data.distribution?.[data.winner] || 'N/A'}):<br>`;
+                    html += `<div style="color:var(--neon-green)">${data.winner}</div>`;
+
+                    if (data.path_distribution) {
+                        html += `<br>Top Paths:<br>`;
+                        const sorted = Object.entries(data.path_distribution).sort((a,b) => b[1] - a[1]).slice(0, 10);
+                        sorted.forEach(([path, count]) => {
+                             html += `- [${count}] ${path}<br>`;
+                        });
+                    }
                 }
-                if (data.anomalies && data.anomalies.length > 0) {
-                    html += `<br><span class="anomaly">ANOMALIES DETECTED:</span><br>`;
-                    data.anomalies.forEach(a => html += `> ${a}<br>`);
-                }
+
                 resultDiv.innerHTML = html;
             } catch (e) {
                 resultDiv.innerText = "Error: " + e.message;
             }
         }
+
+        function renderChart(canvas, timeSeries, options) {
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width = canvas.parentElement.offsetWidth;
+            const h = canvas.height = canvas.parentElement.offsetHeight;
+
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0, 0, w, h);
+
+            // Simple line chart for each option
+            const colors = ['#39ff14', '#ff00ff', '#00ffff', '#ffff00', '#ff0000'];
+
+            const steps = timeSeries.length;
+            const xStep = w / steps;
+
+            // Normalize y
+            const maxVal = Math.max(...timeSeries.map(ts => Math.max(...Object.values(ts.distribution))));
+
+            options.forEach((opt, idx) => {
+                ctx.strokeStyle = colors[idx % colors.length];
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+
+                timeSeries.forEach((ts, i) => {
+                    const count = ts.distribution[opt] || 0;
+                    const x = i * xStep;
+                    const y = h - (count / maxVal) * h * 0.9; // Scale to 90% height
+
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+
+                ctx.stroke();
+
+                // Legend
+                ctx.fillStyle = colors[idx % colors.length];
+                ctx.fillText(opt, 10, 20 + idx * 15);
+            });
+
+            ctx.fillStyle = '#fff';
+            ctx.fillText("Time Evolution", w - 80, h - 10);
+        }
+
+        // --- Existing Geo/Feng Shui Functions ---
 
         async function runGeolocation() {
             const resultDiv = document.getElementById('geoResult');

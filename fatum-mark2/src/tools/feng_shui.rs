@@ -571,7 +571,7 @@ fn calculate_yearly_afflictions(year: i32, facing_deg: f64) -> Vec<String> {
     let mut afflictions = Vec::new();
 
     // Tai Sui (Grand Duke) - Same direction as Year Branch
-    let year_offset = (year - 4).rem_euclid(12); // 2024 (Dragon/Chen) -> 8? No.
+    let _year_offset = (year - 4).rem_euclid(12); // 2024 (Dragon/Chen) -> 8? No.
     // 2024 = Dragon. Rat(0)..Dragon(4).
     // (2024 - 1924) % 12 = 100 % 12 = 4. Correct.
     // 1900 (Rat) -> 0.
@@ -1004,6 +1004,7 @@ fn run_quantum_analysis(session: &SimulationSession, chart: &FlyingStarChart, mo
     // 1. Focus Sector
     let report = session.simulate_decision(
         &sectors.iter().map(|s| s.to_string()).collect::<Vec<_>>(),
+        None,
         5000 // Deep scan
     );
     let volatility = (report.anomalies.len() as f64 * 0.1).min(1.0);
@@ -1012,6 +1013,7 @@ fn run_quantum_analysis(session: &SimulationSession, chart: &FlyingStarChart, mo
     let resonance = if let Some(_intent) = intention {
         let res_report = session.simulate_decision(
             &sectors.iter().map(|s| s.to_string()).collect::<Vec<_>>(),
+            None,
             1000
         );
         Some(res_report.winner)
@@ -1046,6 +1048,7 @@ fn run_quantum_analysis(session: &SimulationSession, chart: &FlyingStarChart, mo
             // Random selection via entropy (simulated by just picking from entropy buffer ideally, but here using session decision)
             let cure_sim = session.simulate_decision(
                 &cure_options.iter().map(|s| s.to_string()).collect::<Vec<_>>(),
+                None,
                 100
             );
 
@@ -1053,6 +1056,7 @@ fn run_quantum_analysis(session: &SimulationSession, chart: &FlyingStarChart, mo
             let placements = vec!["Corner", "Center of Wall", "Hidden", "Visible", "High Up", "Low Down"];
              let place_sim = session.simulate_decision(
                 &placements.iter().map(|s| s.to_string()).collect::<Vec<_>>(),
+                None,
                 50
             );
 
@@ -1082,7 +1086,7 @@ fn run_quantum_analysis(session: &SimulationSession, chart: &FlyingStarChart, mo
             // Check for blockage using entropy simulation
             // If the sector is the "loser" of a simulation, maybe it's blocked?
             // Or just random check.
-             if session.simulate_decision(&vec!["Flow", "Block"].iter().map(|s| s.to_string()).collect::<Vec<_>>(), 10).winner == "Block" {
+             if session.simulate_decision(&vec!["Flow", "Block"].iter().map(|s| s.to_string()).collect::<Vec<_>>(), None, 10).winner == "Block" {
                  blockages.push(sec.clone());
              }
         }
@@ -1116,7 +1120,7 @@ fn run_quantum_analysis(session: &SimulationSession, chart: &FlyingStarChart, mo
     // Run simulation
     for _ in 0..100 { // 100 particles
         // Start at random sector (use entropy)
-        let start_idx = session.simulate_decision(&(0..9).map(|i| i.to_string()).collect::<Vec<_>>(), 10).winner.parse().unwrap_or(0);
+        let start_idx = session.simulate_decision(&(0..9).map(|i| i.to_string()).collect::<Vec<_>>(), None, 10).winner.parse().unwrap_or(0);
         let (r, c) = grid_map[start_idx];
         heatmap[r][c] += 1.0;
 
@@ -1210,10 +1214,10 @@ fn fly_stars(center_star: i32, forward: bool, mutation: Option<&SimulationSessio
         if let Some(session) = mutation {
              // Low probability of mutation (e.g., 10%)
              // We can check anomalies for this step
-             let outcome = session.simulate_decision(&vec!["Normal".to_string(), "Mutate".to_string()], 10);
+             let outcome = session.simulate_decision(&vec!["Normal".to_string(), "Mutate".to_string()], None, 10);
              if outcome.winner == "Mutate" {
                  // Shift +/- 1
-                 if session.simulate_decision(&vec!["+".to_string(), "-".to_string()], 5).winner == "+" {
+                 if session.simulate_decision(&vec!["+".to_string(), "-".to_string()], None, 5).winner == "+" {
                      val += 1;
                  } else {
                      val -= 1;

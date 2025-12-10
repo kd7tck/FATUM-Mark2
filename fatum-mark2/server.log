@@ -1,0 +1,6 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.19s
+     Running `target/debug/fatum-mark2 server`
+Starting Web Server...
+FATUM-MARK2 Server listening on http://127.0.0.1:3000
+DecisionTool: Fetching quantum entropy seed...
+Starting bulk fetch: goal 64 bytes, starting round 28298

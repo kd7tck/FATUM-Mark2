@@ -55,10 +55,10 @@ FATUM-MARK2 is a suite of decision-making tools powered by **CURBy**, the Univer
 
 ## Future Plans
 
-*   **Mobile Application:** Porting the Geolocation tool to a native mobile app for easier outdoor use.
 *   **Advanced Anomaly Detection:** Implementing more rigorous statistical tests (Z-scores, Chi-squared) to find "ghosts" in the machine.
 *   **IoT Integration:** Using hardware quantum generators (like specific USB devices) as a local entropy source fallback.
 *   **Map Visualization:** Visualizing the cluster points directly on a map in the UI.
+*   **Advanced Feng Shui tools:** Able to input house, building layout and get customized feedback.
 
 ## Disclaimer
 This tool is for entertainment and experimental purposes. The "patterns" found in quantum noise are statistical phenomena and should not be taken as absolute predictions or financial/life advice.

@@ -4,12 +4,13 @@ use axum::{
 };
 use std::net::SocketAddr;
 use tower_http::services::ServeDir;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use crate::tools::decision::{DecisionTool, DecisionInput};
 use crate::tools::geolocation::{GeolocationTool, GeoPoint};
 use crate::client::CurbyClient;
 use crate::engine::SimulationSession;
+use crate::tools::feng_shui::{FengShuiConfig, generate_report};
 
 pub async fn start_server() {
     let app = Router::new()
@@ -62,72 +63,28 @@ async fn handle_geolocation(
 }
 
 #[derive(Deserialize)]
-struct FengShuiInput {
-    year: Option<i32>,
+struct FengShuiApiInput {
+    birth_year: Option<i32>,
     gender: Option<String>,
-}
-
-#[derive(Serialize)]
-struct FengShuiResponse {
-    kua: i32,
-    group: String,
-    focus_sector: String,
-    advice: String,
-    anomalies: Vec<String>,
+    construction_year: Option<i32>,
+    facing_degrees: Option<f64>,
+    intention: Option<String>,
 }
 
 async fn handle_fengshui(
-    Json(payload): Json<FengShuiInput>,
+    Json(payload): Json<FengShuiApiInput>,
 ) -> Json<serde_json::Value> {
-    // Re-implementing logic from CLI for Web
-    // In a real app, I'd move the logic to `tools/feng_shui.rs` as a shared function.
-    // For now, I'll inline similar logic or refactor.
-    // Refactoring is better.
+    let config = FengShuiConfig {
+        birth_year: payload.birth_year,
+        gender: payload.gender,
+        construction_year: payload.construction_year.unwrap_or(2024),
+        facing_degrees: payload.facing_degrees.unwrap_or(180.0), // South default
+        current_year: None,
+        intention: payload.intention,
+    };
 
-    // I will call a shared function in `tools/feng_shui` but I need to expose it first.
-    // Since I wrote `run_feng_shui_cli` as a CLI driver, let's extract the core logic.
-    // For now, to save steps, I will duplicate the lightweight logic here or call a static helper if I make one.
-
-    let mut client = CurbyClient::new();
-    match client.fetch_bulk_randomness(64).await {
-        Ok(entropy) => {
-            let session = SimulationSession::new(entropy);
-
-            // Kua Logic
-            let kua = if let (Some(y), Some(g)) = (payload.year, &payload.gender) {
-                crate::tools::feng_shui::calculate_kua(y, g)
-            } else {
-                 let report = session.simulate_decision(
-                    &["1", "2", "3", "4", "5", "6", "7", "8", "9"].iter().map(|s| s.to_string()).collect::<Vec<_>>(),
-                    1000
-                );
-                report.winner.parse().unwrap_or(1)
-            };
-
-            let group = if [1, 3, 4, 9].contains(&kua) { "East Group" } else { "West Group" };
-
-            // Bagua Logic
-             let sectors = vec![
-                "North (Career)", "North-East (Knowledge)", "East (Family)",
-                "South-East (Wealth)", "South (Fame)", "South-West (Love)",
-                "West (Children)", "North-West (Helpful People)", "Center (Health)"
-            ];
-             let report = session.simulate_decision(
-                &sectors.iter().map(|s| s.to_string()).collect::<Vec<_>>(),
-                1_000_000 // Fixed high sim count for web
-            );
-
-            let advice = crate::tools::feng_shui::get_feng_shui_advice(&report.winner);
-
-            let response = FengShuiResponse {
-                kua,
-                group: group.to_string(),
-                focus_sector: report.winner,
-                advice: advice.to_string(),
-                anomalies: report.anomalies,
-            };
-             Json(serde_json::to_value(response).unwrap())
-        },
-        Err(e) => Json(serde_json::json!({ "error": e.to_string() }))
+    match generate_report(config).await {
+        Ok(report) => Json(serde_json::to_value(report).unwrap()),
+        Err(e) => Json(serde_json::json!({ "error": e.to_string() })),
     }
 }

@@ -25,9 +25,18 @@ FATUM-MARK2 is a suite of decision-making tools powered by **CURBy**, the Univer
     *   Set Radius and Simulation Count (up to 1,000,000).
     *   Go to the generated coordinates.
 
-### 3. Quantum Feng Shui
-*   **Goal:** Determine optimal directions and sectors based on Quantum Chaos and traditional Feng Shui Kua numbers.
-*   **Usage:** Enter (optional) birth year/gender. The system combines this with quantum noise to highlight a "Focus Sector" of your life (e.g., Wealth, Career) and provides advice.
+### 3. Quantum Feng Shui & Flying Stars
+*   **Goal:** Comprehensive analysis of your environment using Traditional Feng Shui (Xuan Kong Flying Stars) and Quantum Entropy.
+*   **Features:**
+    *   **Flying Star Chart:** Generates the full 9-palace chart based on construction period and facing direction (24 Mountains). Includes Mountain, Water, and Annual Stars.
+    *   **Kua Profile:** Calculates Life Gua number, element, group, and lucky/unlucky directions.
+    *   **Quantum Qi Scan:** Uses quantum entropy to detect "energy volatility" and anomalies in specific sectors.
+    *   **Intention Resonance:** Checks if a user's specific intention aligns with the current energy of the house.
+*   **Usage (Web):** Access via the local web interface.
+*   **Usage (CLI Backup):**
+    *   This is the **primary backup method** if the web interface is unavailable or if you prefer a text-based report.
+    *   Command: `cargo run -- --command feng-shui`
+    *   Follow the prompts to enter Birth Year, Construction Year, and Facing Direction.
 
 ## Installation & Running
 
@@ -52,13 +61,6 @@ FATUM-MARK2 is a suite of decision-making tools powered by **CURBy**, the Univer
 *   **Backend:** Rust (Axum, Tokio, Reqwest, Clap)
 *   **Frontend:** HTML/CSS/JS (Vanilla)
 *   **Math:** `rand_chacha` (CSPRNG) seeded by CURBy Quantum Entropy.
-
-## Future Plans
-
-*   **Advanced Anomaly Detection:** Implementing more rigorous statistical tests (Z-scores, Chi-squared) to find "ghosts" in the machine.
-*   **IoT Integration:** Using hardware quantum generators (like specific USB devices) as a local entropy source fallback.
-*   **Map Visualization:** Visualizing the cluster points directly on a map in the UI.
-*   **Advanced Feng Shui tools:** Able to input house, building layout and get customized feedback.
 
 ## Disclaimer
 This tool is for entertainment and experimental purposes. The "patterns" found in quantum noise are statistical phenomena and should not be taken as absolute predictions or financial/life advice.

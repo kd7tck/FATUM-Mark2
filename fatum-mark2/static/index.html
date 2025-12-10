@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>FATUM-MARK2 | Quantum Tools</title>
+    <link rel="stylesheet" href="editor.css">
     <style>
         :root {
             --neon-green: #39ff14;
@@ -123,11 +124,12 @@
 
     <div class="container">
         <!-- DECISION TOOL -->
-        <div class="card">
+        <div class="card" style="grid-column: span 2;">
             <h2>Quantum Decision</h2>
             <div class="mode-switch">
                 <label><input type="radio" name="dMode" value="simple" checked onchange="toggleDecisionMode()"> Simple List</label>
-                <label><input type="radio" name="dMode" value="tree" onchange="toggleDecisionMode()"> Decision Tree (JSON)</label>
+                <label><input type="radio" name="dMode" value="visual" id="radioVisual" onchange="toggleDecisionMode()"> Visual Editor</label>
+                <label><input type="radio" name="dMode" value="tree" onchange="toggleDecisionMode()"> JSON View</label>
             </div>
 
             <div id="dSimpleInput">
@@ -135,6 +137,20 @@
                 <input type="text" id="decisionOptions" placeholder="Yes, No, Maybe">
                 <label>Weights (Optional, comma separated floats)</label>
                 <input type="text" id="decisionWeights" placeholder="1.0, 0.5, 2.0">
+            </div>
+
+            <!-- New Visual Editor Section -->
+            <div id="dVisualInput" style="display:none;">
+                <div class="editor-toolbar">
+                    <button class="btn-mini" onclick="window.editorInstance.addNode()">+ Add Node</button>
+                    <label for="uploadTree" class="btn-mini" style="cursor:pointer; display:inline-block; border:1px solid var(--neon-blue); padding:5px; text-align:center;">
+                        Upload JSON
+                    </label>
+                    <input type="file" id="uploadTree" accept=".json" style="display:none;" onchange="handleFileUpload(this)">
+                </div>
+                <div id="nodeEditorContainer" class="node-container">
+                    <!-- Nodes injected by JS -->
+                </div>
             </div>
 
             <div id="dTreeInput" style="display:none;">
@@ -203,13 +219,36 @@
         </div>
     </div>
 
+    <script src="editor.js"></script>
     <script>
         let currentFengShuiData = null;
 
         function toggleDecisionMode() {
             const mode = document.querySelector('input[name="dMode"]:checked').value;
-            document.getElementById('dSimpleInput').style.display = mode === 'simple' ? 'block' : 'none';
-            document.getElementById('dTreeInput').style.display = mode === 'tree' ? 'block' : 'none';
+
+            document.getElementById('dSimpleInput').style.display = 'none';
+            document.getElementById('dVisualInput').style.display = 'none';
+            document.getElementById('dTreeInput').style.display = 'none';
+
+            if (mode === 'simple') {
+                document.getElementById('dSimpleInput').style.display = 'block';
+            } else if (mode === 'visual') {
+                document.getElementById('dVisualInput').style.display = 'block';
+                initEditor();
+                // Ensure sync if JSON was modified manually in text view
+                try {
+                     const jsonVal = document.getElementById('decisionTreeJson').value;
+                     if (jsonVal && window.editorInstance) {
+                         const tree = JSON.parse(jsonVal);
+                         // Basic check if it differs
+                         if (JSON.stringify(tree) !== JSON.stringify(window.editorInstance.tree)) {
+                             window.editorInstance.loadTree(tree);
+                         }
+                     }
+                } catch(e) { console.error("Sync error", e); }
+            } else {
+                document.getElementById('dTreeInput').style.display = 'block';
+            }
         }
 
         function loadExampleTree() {
@@ -242,7 +281,13 @@
                     }
                 }
             };
-            document.getElementById('decisionTreeJson').value = JSON.stringify(example, null, 2);
+            const jsonStr = JSON.stringify(example, null, 2);
+            document.getElementById('decisionTreeJson').value = jsonStr;
+
+            // Sync with Editor if active
+            if (window.editorInstance) {
+                window.editorInstance.loadTree(example);
+            }
         }
 
         async function runDecision() {
@@ -270,8 +315,22 @@
                 }
                 payload.options = options;
             } else {
+                // Both Visual and Tree modes rely on the JSON text area being the source of truth
+                // (Visual mode syncs to it on every change)
                 try {
-                    payload.tree = JSON.parse(document.getElementById('decisionTreeJson').value);
+                    // Ensure visual mode syncs one last time just in case
+                    if (mode === 'visual' && window.editorInstance) {
+                        window.editorInstance.syncJson();
+                    }
+
+                    const jsonVal = document.getElementById('decisionTreeJson').value;
+                    if (!jsonVal.trim()) {
+                         // Attempt to load default if empty
+                         loadExampleTree();
+                         payload.tree = JSON.parse(document.getElementById('decisionTreeJson').value);
+                    } else {
+                         payload.tree = JSON.parse(jsonVal);
+                    }
                 } catch (e) {
                     resultDiv.innerText = "Invalid JSON Tree: " + e.message;
                     return;

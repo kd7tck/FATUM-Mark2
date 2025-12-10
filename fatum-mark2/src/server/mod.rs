@@ -7,7 +7,7 @@ use tower_http::services::ServeDir;
 use serde::Deserialize;
 
 use crate::tools::decision::{DecisionTool, DecisionInput};
-use crate::tools::geolocation::{GeolocationTool, GeoPoint};
+use crate::tools::geolocation::GeolocationTool;
 use crate::client::CurbyClient;
 use crate::engine::SimulationSession;
 use crate::tools::feng_shui::{FengShuiConfig, generate_report};
@@ -65,10 +65,14 @@ async fn handle_geolocation(
 #[derive(Deserialize)]
 struct FengShuiApiInput {
     birth_year: Option<i32>,
+    birth_month: Option<u32>,
+    birth_day: Option<u32>,
+    birth_hour: Option<u32>,
     gender: Option<String>,
     construction_year: Option<i32>,
     facing_degrees: Option<f64>,
     intention: Option<String>,
+    quantum_mode: Option<bool>,
 }
 
 async fn handle_fengshui(
@@ -78,6 +82,9 @@ async fn handle_fengshui(
     use chrono::Datelike;
     let config = FengShuiConfig {
         birth_year: payload.birth_year,
+        birth_month: payload.birth_month,
+        birth_day: payload.birth_day,
+        birth_hour: payload.birth_hour,
         gender: payload.gender,
         construction_year: payload.construction_year.unwrap_or(2024),
         facing_degrees: payload.facing_degrees.unwrap_or(180.0), // South default
@@ -85,6 +92,7 @@ async fn handle_fengshui(
         current_month: Some(now.month()),
         current_day: Some(now.day()),
         intention: payload.intention,
+        quantum_mode: payload.quantum_mode.unwrap_or(false),
     };
 
     match generate_report(config).await {

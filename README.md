@@ -28,9 +28,11 @@ FATUM-MARK2 is a suite of decision-making tools powered by **CURBy**, the Univer
 ### 3. Quantum Feng Shui & Flying Stars
 *   **Goal:** Comprehensive analysis of your environment using Traditional Feng Shui (Xuan Kong Flying Stars) and Quantum Entropy.
 *   **Features:**
-    *   **Flying Star Chart:** Generates the full 9-palace chart based on construction period and facing direction (24 Mountains). Includes Mountain, Water, and Annual Stars.
+    *   **Advanced Flying Star Charts:** Generates Annual, Monthly, and Daily charts based on construction period, facing direction, and current solar terms.
+    *   **Special Formation Detection:** Automatically identifies auspicious patterns such as "Sum of Ten", "Parent String", and "Pearl String".
+    *   **Quantum Cure Simulation:** Uses entropy to suggest specific cures, precise sub-sector placements, and simulates the probability of their success.
+    *   **Qi Flow Analysis:** Maps the flow of energy through the chart and identifies potential blockages using quantum simulations.
     *   **Kua Profile:** Calculates Life Gua number, element, group, and lucky/unlucky directions.
-    *   **Quantum Qi Scan:** Uses quantum entropy to detect "energy volatility" and anomalies in specific sectors.
     *   **Intention Resonance:** Checks if a user's specific intention aligns with the current energy of the house.
 *   **Usage (Web):** Access via the local web interface.
 *   **Usage (CLI Backup):**
@@ -61,6 +63,13 @@ FATUM-MARK2 is a suite of decision-making tools powered by **CURBy**, the Univer
 *   **Backend:** Rust (Axum, Tokio, Reqwest, Clap)
 *   **Frontend:** HTML/CSS/JS (Vanilla)
 *   **Math:** `rand_chacha` (CSPRNG) seeded by CURBy Quantum Entropy.
+
+## Long-Term Goals: Feng Shui System
+The Feng Shui system is designed to evolve into a fully autonomous, quantum-guided metaphysical advisor. Future expansions aim to include:
+*   **Real-time Solar Integration:** Precise calculation of solar terms using astronomical libraries for exact daily star transitions.
+*   **AR Overlay:** Integration with mobile cameras to overlay Flying Star charts and cure placements directly onto the physical environment.
+*   **Personalized Qi Tracking:** Long-term database to track user luck cycles against daily flying stars and quantum anomalies.
+*   **IoT Integration:** Potential to interface with smart home lighting to automatically adjust color temperatures based on the daily Element needed in a specific sector.
 
 ## Disclaimer
 This tool is for entertainment and experimental purposes. The "patterns" found in quantum noise are statistical phenomena and should not be taken as absolute predictions or financial/life advice.

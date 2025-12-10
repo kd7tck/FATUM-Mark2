@@ -2,102 +2,250 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FATUM-MARK2 | Quantum Decision Tools</title>
+    <title>FATUM-MARK2 | Quantum Tools</title>
     <style>
-        body { font-family: 'Courier New', monospace; background: #0d0d0d; color: #00ff41; padding: 20px; }
-        .container { max-width: 800px; margin: 0 auto; }
-        h1 { text-align: center; border-bottom: 1px solid #00ff41; padding-bottom: 10px; }
-        .tool-card { border: 1px solid #333; padding: 20px; margin-bottom: 20px; background: #111; }
-        input, button, select { background: #000; color: #00ff41; border: 1px solid #00ff41; padding: 10px; margin: 5px 0; width: 100%; box-sizing: border-box; font-family: inherit; }
-        button { cursor: pointer; font-weight: bold; }
-        button:hover { background: #00ff41; color: #000; }
-        #report-area { white-space: pre-wrap; margin-top: 20px; border: 1px dashed #555; padding: 10px; display: none; }
-        .anomaly { color: #ff3333; }
-        .loading { text-align: center; display: none; }
+        :root {
+            --neon-green: #39ff14;
+            --neon-pink: #ff00ff;
+            --neon-blue: #00ffff;
+            --dark-bg: #050505;
+            --panel-bg: #111;
+        }
+        body {
+            background-color: var(--dark-bg);
+            color: #ddd;
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            color: var(--neon-green);
+            text-shadow: 0 0 10px var(--neon-green);
+            margin-bottom: 40px;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+        }
+        .card {
+            background: var(--panel-bg);
+            border: 1px solid #333;
+            padding: 20px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.8);
+            position: relative;
+            overflow: hidden;
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+        }
+        .card h2 {
+            color: var(--neon-blue);
+            margin-top: 0;
+        }
+        button {
+            background: transparent;
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            transition: all 0.3s;
+            margin-top: 10px;
+            width: 100%;
+        }
+        button:hover {
+            background: var(--neon-green);
+            color: black;
+            box-shadow: 0 0 15px var(--neon-green);
+        }
+        input, select {
+            background: #222;
+            border: 1px solid #444;
+            color: white;
+            padding: 8px;
+            width: 100%;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 10px;
+            background: #000;
+            border: 1px dashed #555;
+            min-height: 50px;
+            white-space: pre-wrap;
+            font-size: 0.9em;
+        }
+        .anomaly {
+            color: var(--neon-pink);
+        }
     </style>
 </head>
 <body>
+    <h1>FATUM-MARK2 // QUANTUM ENGINE</h1>
+
     <div class="container">
-        <h1>FATUM-MARK2</h1>
-        <p style="text-align:center">Quantum Randomness Simulation Engine</p>
-
-        <div class="tool-card">
-            <h2>Quantum Decision Tree</h2>
-            <p>Enter possible outcomes (comma separated) and run simulations against quantum noise patterns.</p>
-
-            <label>Options:</label>
-            <input type="text" id="decision-options" placeholder="e.g., Go Left, Go Right, Stay Put" value="Option A, Option B, Option C">
-
-            <label>Simulation Count:</label>
-            <select id="sim-count">
-                <option value="100">Hundreds (100)</option>
-                <option value="1000">Thousands (1,000)</option>
-                <option value="5000">Heavy (5,000)</option>
-                <!-- Millions would go here but restricted for API speed/demo purposes -->
+        <!-- DECISION TOOL -->
+        <div class="card">
+            <h2>Quantum Decision</h2>
+            <label>Options (comma separated)</label>
+            <input type="text" id="decisionOptions" placeholder="Yes, No, Maybe">
+            <label>Simulations</label>
+            <select id="decisionSims">
+                <option value="1000">1,000</option>
+                <option value="100000">100,000</option>
+                <option value="1000000">1,000,000</option>
             </select>
+            <button onclick="runDecision()">INITIATE</button>
+            <div id="decisionResult" class="result">Waiting for entropy...</div>
+        </div>
 
-            <button onclick="runDecision()">INITIATE SIMULATION</button>
+        <!-- GEOLOCATION TOOL -->
+        <div class="card">
+            <h2>Quantum Geolocation</h2>
+            <p>Generates an attractor point based on your location.</p>
+            <label>Radius (meters)</label>
+            <input type="number" id="geoRadius" value="3000">
+            <label>Simulations (Quantum Points)</label>
+            <select id="geoSims">
+                <option value="1000">1,000</option>
+                <option value="100000">100,000</option>
+                <option value="1000000">1,000,000</option>
+            </select>
+            <button onclick="runGeolocation()">GENERATE COORDINATES</button>
+            <div id="geoResult" class="result">Waiting for user location...</div>
+        </div>
 
-            <div id="loading" class="loading">Fetching Quantum Data & Running Simulations...</div>
-
-            <div id="report-area"></div>
+        <!-- FENG SHUI TOOL -->
+        <div class="card">
+            <h2>Quantum Feng Shui</h2>
+            <label>Birth Year (Optional)</label>
+            <input type="number" id="fsYear" placeholder="YYYY">
+            <label>Gender (Optional)</label>
+            <select id="fsGender">
+                <option value="">Unknown/Skip</option>
+                <option value="M">Male</option>
+                <option value="F">Female</option>
+            </select>
+            <button onclick="runFengShui()">CALCULATE</button>
+            <div id="fsResult" class="result">Ready.</div>
         </div>
     </div>
 
     <script>
         async function runDecision() {
-            const optionsInput = document.getElementById('decision-options').value;
-            const options = optionsInput.split(',').map(s => s.trim()).filter(s => s.length > 0);
-            const simCount = parseInt(document.getElementById('sim-count').value);
-            const reportArea = document.getElementById('report-area');
-            const loading = document.getElementById('loading');
+            const resultDiv = document.getElementById('decisionResult');
+            resultDiv.innerHTML = "Fetching Quantum Entropy... (This may take a moment)";
 
+            const options = document.getElementById('decisionOptions').value.split(',').map(s => s.trim()).filter(s => s);
             if (options.length < 2) {
-                alert("Please enter at least 2 options.");
+                resultDiv.innerText = "Please enter at least 2 options.";
                 return;
             }
-
-            reportArea.style.display = 'none';
-            loading.style.display = 'block';
+            const sims = parseInt(document.getElementById('decisionSims').value);
 
             try {
                 const response = await fetch('/api/tools/decision', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ options: options, simulation_count: simCount })
+                    body: JSON.stringify({ options, simulation_count: sims })
                 });
-
                 const data = await response.json();
 
-                if (data.error) {
-                    reportArea.innerHTML = `<span style="color:red">Error: ${data.error}</span>`;
-                } else {
-                    let html = `<h3>SIMULATION COMPLETE</h3>`;
-                    html += `<p><strong>Winner:</strong> ${data.winner}</p>`;
-                    html += `<p>${data.report}</p>`;
-                    html += `<h4>Distribution:</h4><ul>`;
-                    for (const [opt, count] of Object.entries(data.distribution)) {
-                        html += `<li>${opt}: ${count} hits</li>`;
-                    }
-                    html += `</ul>`;
-
-                    if (data.anomalies && data.anomalies.length > 0) {
-                        html += `<h4 class="anomaly">ANOMALIES DETECTED:</h4><ul>`;
-                        data.anomalies.forEach(a => {
-                            html += `<li class="anomaly">${a}</li>`;
-                        });
-                        html += `</ul>`;
-                    }
-
-                    reportArea.innerHTML = html;
+                let html = `<strong>WINNER: ${data.winner}</strong><br>`;
+                html += `Distribution:<br>`;
+                for (const [opt, count] of Object.entries(data.distribution)) {
+                    html += `- ${opt}: ${count}<br>`;
                 }
-                reportArea.style.display = 'block';
-
+                if (data.anomalies && data.anomalies.length > 0) {
+                    html += `<br><span class="anomaly">ANOMALIES DETECTED:</span><br>`;
+                    data.anomalies.forEach(a => html += `> ${a}<br>`);
+                }
+                resultDiv.innerHTML = html;
             } catch (e) {
-                alert("Connection failed: " + e);
-            } finally {
-                loading.style.display = 'none';
+                resultDiv.innerText = "Error: " + e.message;
+            }
+        }
+
+        async function runGeolocation() {
+            const resultDiv = document.getElementById('geoResult');
+            resultDiv.innerText = "Acquiring GPS...";
+
+            if (!navigator.geolocation) {
+                resultDiv.innerText = "Geolocation is not supported by this browser.";
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(async (position) => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                const radius = parseFloat(document.getElementById('geoRadius').value);
+                const sims = parseInt(document.getElementById('geoSims').value);
+
+                resultDiv.innerText = `GPS Locked (${lat.toFixed(4)}, ${lon.toFixed(4)}). Calculating Quantum Attractor...`;
+
+                try {
+                    const response = await fetch('/api/tools/geolocation', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ lat, lon, radius, simulation_count: sims })
+                    });
+                    const data = await response.json();
+
+                    if(data.error) throw new Error(data.error);
+
+                    let html = `<strong style="color:var(--neon-pink)">ATTRACTOR FOUND</strong><br>`;
+                    html += `Lat: ${data.lat.toFixed(6)}<br>Lon: ${data.lon.toFixed(6)}<br>`;
+                    html += `Power (Density): ${data.power}<br>`;
+                    html += `<a href="https://www.google.com/maps/search/?api=1&query=${data.lat},${data.lon}" target="_blank" style="color:var(--neon-blue)">Open in Maps</a>`;
+
+                    resultDiv.innerHTML = html;
+                } catch (e) {
+                    resultDiv.innerText = "Error: " + e.message;
+                }
+
+            }, (err) => {
+                 resultDiv.innerText = "GPS Error: " + err.message;
+            });
+        }
+
+        async function runFengShui() {
+            const resultDiv = document.getElementById('fsResult');
+            resultDiv.innerHTML = "Consulting the Quantum Field...";
+
+            const yearStr = document.getElementById('fsYear').value;
+            const gender = document.getElementById('fsGender').value;
+
+            const payload = {};
+            if (yearStr) payload.year = parseInt(yearStr);
+            if (gender) payload.gender = gender;
+
+            try {
+                const response = await fetch('/api/tools/fengshui', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+
+                let html = `<strong>Kua Number: ${data.kua}</strong> (${data.group})<br>`;
+                html += `Focus Sector: <span style="color:var(--neon-green)">${data.focus_sector}</span><br>`;
+                html += `<br><em>${data.advice}</em>`;
+
+                resultDiv.innerHTML = html;
+            } catch (e) {
+                resultDiv.innerText = "Error: " + e.message;
             }
         }
     </script>

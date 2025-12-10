@@ -1,8 +1,10 @@
 use std::collections::HashMap;
+use rand::{Rng, SeedableRng};
+use rand_chacha::ChaCha20Rng;
 
 #[derive(Debug)]
 pub struct SimulationSession {
-    entropy: Vec<u8>,
+    pub seed: [u8; 32],
 }
 
 #[derive(Debug, Clone)]
@@ -10,26 +12,28 @@ pub struct SimulationReport {
     pub total_simulations: usize,
     pub winner: String,
     pub distribution: HashMap<String, usize>,
-    pub anomalies: Vec<String>, // Description of any anomalies found
+    pub anomalies: Vec<String>,
 }
 
 impl SimulationSession {
     pub fn new(entropy: Vec<u8>) -> Self {
-        Self { entropy }
+        // Create a 32-byte seed from the entropy.
+        // If entropy is < 32 bytes, we pad. If > 32, we take the first 32 (or hash it).
+        // For simplicity and maximizing usage, let's mix the entropy into 32 bytes.
+        let mut seed = [0u8; 32];
+        for (i, &byte) in entropy.iter().enumerate() {
+            seed[i % 32] ^= byte;
+        }
+        Self { seed }
     }
 
     /// Runs a simulation for decision making.
-    /// It treats the entropy as a stream of choices.
-    /// `options`: The available choices.
-    /// `simulations`: How many simulations to run.
+    /// Uses a CSPRNG seeded by the quantum entropy.
     pub fn simulate_decision(&self, options: &[String], simulations: usize) -> SimulationReport {
         let mut distribution: HashMap<String, usize> = HashMap::new();
         for opt in options {
             distribution.insert(opt.clone(), 0);
         }
-
-        // Simple strategy: modulo mapping.
-        // We walk through the entropy bytes. Each byte (or set of bytes) maps to an index.
 
         let num_options = options.len();
         if num_options == 0 {
@@ -41,16 +45,12 @@ impl SimulationSession {
             };
         }
 
+        let mut rng = ChaCha20Rng::from_seed(self.seed);
         let mut counts = vec![0; num_options];
-        let mut entropy_iter = self.entropy.iter().cycle(); // Cycle if we run out of entropy (though we should have enough if fetched correctly)
 
         for _ in 0..simulations {
-            // In a real high-fidelity simulation, we might combine multiple bytes or look for specific bit patterns.
-            // For now, we take one byte.
-            if let Some(&byte) = entropy_iter.next() {
-                let index = byte as usize % num_options;
-                counts[index] += 1;
-            }
+            let index = rng.gen_range(0..num_options);
+            counts[index] += 1;
         }
 
         // Populate distribution map
@@ -70,14 +70,21 @@ impl SimulationSession {
             }
         }
 
-        // Anomaly detection (very basic for now)
-        // Check if any option is significantly deviating from expected distribution (uniform).
+        // Anomaly detection
         let expected = simulations as f64 / num_options as f64;
         let mut anomalies = Vec::new();
+
+        // Statistical significance check (Z-score approx)
+        let std_dev = (simulations as f64 * (1.0/num_options as f64) * (1.0 - 1.0/num_options as f64)).sqrt();
+
         for (opt, &count) in &distribution {
-             let deviation = (count as f64 - expected).abs();
-             if deviation > (expected * 0.2) { // >20% deviation
-                 anomalies.push(format!("Option '{}' deviated by {:.1}% from expected mean.", opt, (deviation/expected)*100.0));
+             let diff = count as f64 - expected;
+             let z_score = diff / std_dev;
+
+             // If Z-score > 3 (roughly 99.7% confidence), it's an anomaly
+             if z_score.abs() > 3.0 {
+                 let direction = if z_score > 0.0 { "high" } else { "low" };
+                 anomalies.push(format!("Option '{}' is statistically significant {} (Z={:.2})", opt, direction, z_score));
              }
         }
 

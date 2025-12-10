@@ -4,20 +4,26 @@ mod tests {
 
     #[test]
     fn test_simulation_distribution() {
-        // Entropy that favors index 1 (odd numbers)
-        // Options: A, B. Index 0 = A, Index 1 = B.
-        // Entropy: [1, 3, 5, 2] -> 1%2=1 (B), 3%2=1 (B), 5%2=1 (B), 2%2=0 (A)
-        // Winner should be B (3 hits vs 1 hit)
+        // Since we switched to ChaCha20Rng, the entropy is now a seed.
+        // We cannot predict the exact outcome of 4 simulations easily without knowing the ChaCha20 implementation details
+        // for that specific seed.
+        // Instead, we should verify that the session initializes and runs without panicking,
+        // and produces a valid report structure.
+
+        // A fixed seed *should* be deterministic, but checking specific outcomes requires calculating the expected ChaCha output.
+        // For this test, we'll verify structural correctness.
+
         let entropy = vec![1, 3, 5, 2];
         let session = SimulationSession::new(entropy);
         let options = vec!["A".to_string(), "B".to_string()];
 
-        let report = session.simulate_decision(&options, 4);
+        let report = session.simulate_decision(&options, 100);
 
-        assert_eq!(report.total_simulations, 4);
-        assert_eq!(report.winner, "B");
-        assert_eq!(report.distribution.get("A"), Some(&1));
-        assert_eq!(report.distribution.get("B"), Some(&3));
+        assert_eq!(report.total_simulations, 100);
+        assert!(report.distribution.contains_key("A"));
+        assert!(report.distribution.contains_key("B"));
+        let sum = report.distribution.get("A").unwrap() + report.distribution.get("B").unwrap();
+        assert_eq!(sum, 100);
     }
 
     #[test]
@@ -33,18 +39,18 @@ mod tests {
     }
 
     #[test]
-    fn test_insufficient_entropy_cycles() {
-        // Only 1 byte of entropy, but 5 simulations requested.
-        // Entropy: [1]. Options: A, B.
-        // Should cycle: 1 (B), 1 (B), 1 (B), 1 (B), 1 (B)
-        let entropy = vec![1];
-        let session = SimulationSession::new(entropy);
-        let options = vec!["A".to_string(), "B".to_string()];
+    fn test_consistency_from_same_seed() {
+        // Same entropy should produce same results (deterministic PRNG from seed)
+        let entropy = vec![42, 100, 200];
+        let session1 = SimulationSession::new(entropy.clone());
+        let session2 = SimulationSession::new(entropy.clone());
 
-        let report = session.simulate_decision(&options, 5);
+        let options = vec!["A".to_string(), "B".to_string(), "C".to_string()];
 
-        assert_eq!(report.total_simulations, 5);
-        assert_eq!(report.winner, "B");
-        assert_eq!(report.distribution.get("B"), Some(&5));
+        let report1 = session1.simulate_decision(&options, 1000);
+        let report2 = session2.simulate_decision(&options, 1000);
+
+        assert_eq!(report1.winner, report2.winner);
+        assert_eq!(report1.distribution, report2.distribution);
     }
 }

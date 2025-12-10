@@ -1,8 +1,12 @@
-use fatum_mark2::server::start_server;
+mod cli;
+use cli::handler::handle_cli;
 use anyhow::Result;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    start_server().await;
+    // Initialize tracing
+    tracing_subscriber::fmt::init();
+
+    handle_cli().await;
     Ok(())
 }

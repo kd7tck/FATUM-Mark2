@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FATUM-MARK2 | Quantum Decision Tools</title>
+    <style>
+        body { font-family: 'Courier New', monospace; background: #0d0d0d; color: #00ff41; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { text-align: center; border-bottom: 1px solid #00ff41; padding-bottom: 10px; }
+        .tool-card { border: 1px solid #333; padding: 20px; margin-bottom: 20px; background: #111; }
+        input, button, select { background: #000; color: #00ff41; border: 1px solid #00ff41; padding: 10px; margin: 5px 0; width: 100%; box-sizing: border-box; font-family: inherit; }
+        button { cursor: pointer; font-weight: bold; }
+        button:hover { background: #00ff41; color: #000; }
+        #report-area { white-space: pre-wrap; margin-top: 20px; border: 1px dashed #555; padding: 10px; display: none; }
+        .anomaly { color: #ff3333; }
+        .loading { text-align: center; display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>FATUM-MARK2</h1>
+        <p style="text-align:center">Quantum Randomness Simulation Engine</p>
+
+        <div class="tool-card">
+            <h2>Quantum Decision Tree</h2>
+            <p>Enter possible outcomes (comma separated) and run simulations against quantum noise patterns.</p>
+
+            <label>Options:</label>
+            <input type="text" id="decision-options" placeholder="e.g., Go Left, Go Right, Stay Put" value="Option A, Option B, Option C">
+
+            <label>Simulation Count:</label>
+            <select id="sim-count">
+                <option value="100">Hundreds (100)</option>
+                <option value="1000">Thousands (1,000)</option>
+                <option value="5000">Heavy (5,000)</option>
+                <!-- Millions would go here but restricted for API speed/demo purposes -->
+            </select>
+
+            <button onclick="runDecision()">INITIATE SIMULATION</button>
+
+            <div id="loading" class="loading">Fetching Quantum Data & Running Simulations...</div>
+
+            <div id="report-area"></div>
+        </div>
+    </div>
+
+    <script>
+        async function runDecision() {
+            const optionsInput = document.getElementById('decision-options').value;
+            const options = optionsInput.split(',').map(s => s.trim()).filter(s => s.length > 0);
+            const simCount = parseInt(document.getElementById('sim-count').value);
+            const reportArea = document.getElementById('report-area');
+            const loading = document.getElementById('loading');
+
+            if (options.length < 2) {
+                alert("Please enter at least 2 options.");
+                return;
+            }
+
+            reportArea.style.display = 'none';
+            loading.style.display = 'block';
+
+            try {
+                const response = await fetch('/api/tools/decision', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ options: options, simulation_count: simCount })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    reportArea.innerHTML = `<span style="color:red">Error: ${data.error}</span>`;
+                } else {
+                    let html = `<h3>SIMULATION COMPLETE</h3>`;
+                    html += `<p><strong>Winner:</strong> ${data.winner}</p>`;
+                    html += `<p>${data.report}</p>`;
+                    html += `<h4>Distribution:</h4><ul>`;
+                    for (const [opt, count] of Object.entries(data.distribution)) {
+                        html += `<li>${opt}: ${count} hits</li>`;
+                    }
+                    html += `</ul>`;
+
+                    if (data.anomalies && data.anomalies.length > 0) {
+                        html += `<h4 class="anomaly">ANOMALIES DETECTED:</h4><ul>`;
+                        data.anomalies.forEach(a => {
+                            html += `<li class="anomaly">${a}</li>`;
+                        });
+                        html += `</ul>`;
+                    }
+
+                    reportArea.innerHTML = html;
+                }
+                reportArea.style.display = 'block';
+
+            } catch (e) {
+                alert("Connection failed: " + e);
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

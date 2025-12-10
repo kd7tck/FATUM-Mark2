@@ -69,7 +69,6 @@ The Feng Shui system is designed to evolve into a fully autonomous, quantum-guid
 *   **Real-time Solar Integration:** Precise calculation of solar terms using astronomical libraries for exact daily star transitions.
 *   **AR Overlay:** Integration with mobile cameras to overlay Flying Star charts and cure placements directly onto the physical environment.
 *   **Personalized Qi Tracking:** Long-term database to track user luck cycles against daily flying stars and quantum anomalies.
-*   **IoT Integration:** Potential to interface with smart home lighting to automatically adjust color temperatures based on the daily Element needed in a specific sector.
 
 ## Disclaimer
 This tool is for entertainment and experimental purposes. The "patterns" found in quantum noise are statistical phenomena and should not be taken as absolute predictions or financial/life advice.

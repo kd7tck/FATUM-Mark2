@@ -74,12 +74,16 @@ struct FengShuiApiInput {
 async fn handle_fengshui(
     Json(payload): Json<FengShuiApiInput>,
 ) -> Json<serde_json::Value> {
+    let now = chrono::Local::now();
+    use chrono::Datelike;
     let config = FengShuiConfig {
         birth_year: payload.birth_year,
         gender: payload.gender,
         construction_year: payload.construction_year.unwrap_or(2024),
         facing_degrees: payload.facing_degrees.unwrap_or(180.0), // South default
-        current_year: None,
+        current_year: Some(now.year()),
+        current_month: Some(now.month()),
+        current_day: Some(now.day()),
         intention: payload.intention,
     };
 

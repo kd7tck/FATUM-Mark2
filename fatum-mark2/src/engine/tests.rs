@@ -17,7 +17,7 @@ mod tests {
         let session = SimulationSession::new(entropy);
         let options = vec!["A".to_string(), "B".to_string()];
 
-        let report = session.simulate_decision(&options, 100);
+        let report = session.simulate_decision(&options, None, 100);
 
         assert_eq!(report.total_simulations, 100);
         assert!(report.distribution.contains_key("A"));
@@ -32,7 +32,7 @@ mod tests {
         let session = SimulationSession::new(entropy);
         let options: Vec<String> = vec![];
 
-        let report = session.simulate_decision(&options, 10);
+        let report = session.simulate_decision(&options, None, 10);
 
         assert_eq!(report.total_simulations, 0);
         assert_eq!(report.winner, "None");
@@ -47,8 +47,8 @@ mod tests {
 
         let options = vec!["A".to_string(), "B".to_string(), "C".to_string()];
 
-        let report1 = session1.simulate_decision(&options, 1000);
-        let report2 = session2.simulate_decision(&options, 1000);
+        let report1 = session1.simulate_decision(&options, None, 1000);
+        let report2 = session2.simulate_decision(&options, None, 1000);
 
         assert_eq!(report1.winner, report2.winner);
         assert_eq!(report1.distribution, report2.distribution);

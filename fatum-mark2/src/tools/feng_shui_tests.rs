@@ -24,7 +24,7 @@ mod tests {
     #[test]
     fn test_annual_flying_stars_period_8() {
         // Period 8, Facing N2 (Zi)
-        let chart = calculate_flying_star_chart(2004, 0.0, 2024);
+        let chart = calculate_flying_star_chart(2004, 0.0, 2024, None);
         assert_eq!(chart.period, 8);
 
         // Check Center: 8 (Base), 3 (Mtn), 4 (Wtr)
@@ -48,12 +48,12 @@ mod tests {
         // Ruling Star = 5 - (1 - 1) = 5.
         // So Feb 2024 should have Star 5 in center.
 
-        let chart = calculate_monthly_chart(2024, 2).unwrap();
+        let chart = calculate_monthly_chart(2024, 2, None).unwrap();
         assert_eq!(chart.period, 5); // Center Star
 
         // Month 3 (Mar) -> Chinese Month 2.
         // Ruling = 5 - (2-1) = 4.
-        let chart_mar = calculate_monthly_chart(2024, 3).unwrap();
+        let chart_mar = calculate_monthly_chart(2024, 3, None).unwrap();
         assert_eq!(chart_mar.period, 4);
     }
 
@@ -63,7 +63,7 @@ mod tests {
         // Date: Dec 23, 2023. Yang Cycle (Ascending).
         // Days diff = 1 (approx).
         // Star = 1 + (1%9) = 2.
-        let chart = calculate_daily_chart(2023, 12, 23).unwrap();
+        let chart = calculate_daily_chart(2023, 12, 23, None).unwrap();
         // Note: My simplified logic might handle solstice day as diff 0?
         // Let's check logic: if d >= winter_solstice (Dec 21).
         // diff = 23 - 21 = 2 days.
@@ -77,7 +77,7 @@ mod tests {
         // Date: Jun 22 (1 day later). Yin Cycle (Descending).
         // diff = 1.
         // Star = 9 - (1%9) = 8.
-        let chart_summer = calculate_daily_chart(2023, 6, 22).unwrap();
+        let chart_summer = calculate_daily_chart(2023, 6, 22, None).unwrap();
         assert_eq!(chart_summer.period, 8);
     }
 
@@ -94,7 +94,7 @@ mod tests {
 
         use crate::tools::feng_shui::Palace;
 
-        let palaces = (0..9).map(|i| Palace {
+        let palaces = (0..9).map(|_i| Palace {
             sector: "Test".to_string(),
             base_star: 3,
             mountain_star: 2,

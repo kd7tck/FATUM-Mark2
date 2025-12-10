@@ -130,20 +130,36 @@
         <!-- FENG SHUI TOOL -->
         <div class="card">
             <h2>Quantum Feng Shui</h2>
-            <label>Birth Year (Optional)</label>
-            <input type="number" id="fsYear" placeholder="YYYY">
+            <label>Birth Date (Optional)</label>
+            <div style="display: flex; gap: 10px;">
+                <input type="number" id="fsYear" placeholder="YYYY" style="width: 40%;">
+                <input type="number" id="fsMonth" placeholder="MM" style="width: 30%;">
+                <input type="number" id="fsDay" placeholder="DD" style="width: 30%;">
+            </div>
+            <label>Birth Hour (Optional, 0-23)</label>
+            <input type="number" id="fsHour" placeholder="HH">
+
             <label>Gender (Optional)</label>
             <select id="fsGender">
                 <option value="">Unknown/Skip</option>
                 <option value="M">Male</option>
                 <option value="F">Female</option>
             </select>
+
+            <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; cursor: pointer;">
+                <input type="checkbox" id="fsQuantum" style="width: auto; margin: 0;">
+                <span style="color: var(--neon-pink);">Enable Quantum Star Mutation</span>
+            </label>
+
             <button onclick="runFengShui()">CALCULATE</button>
+            <button onclick="downloadReport()" id="fsDownload" style="display:none; margin-top: 5px; border-color: var(--neon-blue); color: var(--neon-blue);">DOWNLOAD FULL REPORT</button>
             <div id="fsResult" class="result">Ready.</div>
         </div>
     </div>
 
     <script>
+        let currentFengShuiData = null;
+
         async function runDecision() {
             const resultDiv = document.getElementById('decisionResult');
             resultDiv.innerHTML = "Fetching Quantum Entropy... (This may take a moment)";
@@ -222,13 +238,22 @@
 
         async function runFengShui() {
             const resultDiv = document.getElementById('fsResult');
+            const downloadBtn = document.getElementById('fsDownload');
             resultDiv.innerHTML = "Consulting the Quantum Field...";
+            downloadBtn.style.display = 'none';
 
             const yearStr = document.getElementById('fsYear').value;
+            const monthStr = document.getElementById('fsMonth').value;
+            const dayStr = document.getElementById('fsDay').value;
+            const hourStr = document.getElementById('fsHour').value;
             const gender = document.getElementById('fsGender').value;
+            const quantumMode = document.getElementById('fsQuantum').checked;
 
-            const payload = {};
-            if (yearStr) payload.year = parseInt(yearStr);
+            const payload = { quantum_mode: quantumMode };
+            if (yearStr) payload.birth_year = parseInt(yearStr);
+            if (monthStr) payload.birth_month = parseInt(monthStr);
+            if (dayStr) payload.birth_day = parseInt(dayStr);
+            if (hourStr) payload.birth_hour = parseInt(hourStr);
             if (gender) payload.gender = gender;
 
             try {
@@ -239,14 +264,120 @@
                 });
                 const data = await response.json();
 
-                let html = `<strong>Kua Number: ${data.kua}</strong> (${data.group})<br>`;
-                html += `Focus Sector: <span style="color:var(--neon-green)">${data.focus_sector}</span><br>`;
-                html += `<br><em>${data.advice}</em>`;
+                if(data.error) throw new Error(data.error);
+
+                currentFengShuiData = data; // Store for download
+                downloadBtn.style.display = 'block';
+
+                let html = ``;
+
+                // BaZi
+                if (data.bazi) {
+                    html += `<div style="border-bottom: 1px solid #333; margin-bottom: 10px; padding-bottom: 5px;">`;
+                    html += `<strong style="color:var(--neon-blue)">BAZI PROFILE</strong><br>`;
+                    html += `Day Master: <span style="color:white">${data.bazi.day_master}</span><br>`;
+                    html += `Pillars: ${data.bazi.year_pillar} (Y) | ${data.bazi.month_pillar} (M) | ${data.bazi.day_pillar} (D) | ${data.bazi.hour_pillar} (H)`;
+                    html += `</div>`;
+                }
+
+                // Kua & Hexagram
+                if (data.kua || data.hexagram) {
+                    html += `<div style="margin-bottom: 10px;">`;
+                    if (data.kua) html += `Personal Kua: <strong style="color:var(--neon-green)">${data.kua.number} (${data.kua.group})</strong><br>`;
+                    if (data.house_kua) html += `House Kua: <strong>${data.house_kua.number} (${data.house_kua.element})</strong><br>`;
+                    if (data.hexagram) html += `Hexagram: <strong>#${data.hexagram.index} ${data.hexagram.name}</strong><br><small>${data.hexagram.meaning}</small>`;
+                    html += `</div>`;
+                }
+
+                // Chart Highlights
+                html += `<div><strong>Annual Chart (${data.annual_chart.label})</strong><br>`;
+                html += `Facing: ${data.annual_chart.facing_mountain} | Sitting: ${data.annual_chart.sitting_mountain}</div>`;
+
+                // Quantum Analysis
+                html += `<div style="margin-top: 15px; border-top: 1px solid #333; padding-top: 5px;">`;
+                html += `<strong style="color:var(--neon-pink)">QUANTUM ANALYSIS</strong><br>`;
+                html += `Focus Sector: ${data.quantum.focus_sector} (Vol: ${data.quantum.volatility_index.toFixed(2)})<br>`;
+
+                if (data.quantum.qi_heatmap) {
+                    html += `<br>Qi Heatmap (3x3 Grid):<br><div style="display:grid; grid-template-columns:repeat(3, 30px); gap:2px; margin:5px 0;">`;
+                    data.quantum.qi_heatmap.forEach(row => {
+                        row.forEach(val => {
+                            const intensity = Math.min(255, Math.floor(val * 50));
+                            html += `<div style="width:30px; height:30px; background:rgb(0, ${intensity}, 0); border:1px solid #444;" title="Density: ${val}"></div>`;
+                        });
+                    });
+                    html += `</div>`;
+                }
+
+                if (data.quantum.suggested_cures && data.quantum.suggested_cures.length > 0) {
+                    html += `<br><u>Suggested Cures:</u><br>`;
+                    data.quantum.suggested_cures.slice(0, 3).forEach(c => {
+                        html += `- ${c.sector}: ${c.cure_name} (${(c.success_probability*100).toFixed(0)}%)<br>`;
+                    });
+                }
+                html += `</div>`;
 
                 resultDiv.innerHTML = html;
             } catch (e) {
                 resultDiv.innerText = "Error: " + e.message;
             }
+        }
+
+        function downloadReport() {
+            if (!currentFengShuiData) return;
+            const data = currentFengShuiData;
+
+            let text = "FATUM-MARK2 // FENG SHUI EXTENSIVE REPORT\n";
+            text += "========================================\n\n";
+
+            if (data.bazi) {
+                text += "[ BAZI FOUR PILLARS ]\n";
+                text += `Day Master: ${data.bazi.day_master}\n`;
+                text += `Year:  ${data.bazi.year_pillar}\n`;
+                text += `Month: ${data.bazi.month_pillar}\n`;
+                text += `Day:   ${data.bazi.day_pillar}\n`;
+                text += `Hour:  ${data.bazi.hour_pillar}\n\n`;
+            }
+
+            if (data.kua) {
+                text += `[ PERSONAL KUA ]\nNumber: ${data.kua.number} (${data.kua.group})\nElement: ${data.kua.element}\n\n`;
+            }
+
+            if (data.hexagram) {
+                text += `[ XUAN KONG DA GUA ]\nHexagram: #${data.hexagram.index} ${data.hexagram.name}\nMeaning: ${data.hexagram.meaning}\n\n`;
+            }
+
+            text += `[ ANNUAL CHART: ${data.annual_chart.label} ]\n`;
+            text += `Facing: ${data.annual_chart.facing_mountain}\nSitting: ${data.annual_chart.sitting_mountain}\n`;
+            data.annual_chart.palaces.forEach(p => {
+                text += `  - ${p.sector}: Base(${p.base_star}) Mtn(${p.mountain_star}) Wtr(${p.water_star}) Vis(${p.visiting_star})\n`;
+            });
+            text += "\n";
+
+            if (data.replacement_chart) {
+                text += `[ REPLACEMENT CHART DETECTED ]\nType: ${data.replacement_chart.label}\n\n`;
+            }
+
+            text += "[ QUANTUM ANALYSIS ]\n";
+            text += `Focus Sector: ${data.quantum.focus_sector}\n`;
+            text += `Volatility: ${data.quantum.volatility_index}\n`;
+            if (data.quantum.suggested_cures.length > 0) {
+                text += "Suggested Cures:\n";
+                data.quantum.suggested_cures.forEach(c => {
+                    text += `  * ${c.sector}: ${c.cure_name} for ${c.affliction}\n`;
+                });
+            }
+
+            text += "\n[ GENERAL ADVICE ]\n";
+            data.advice.forEach(a => text += `* ${a}\n`);
+
+            const blob = new Blob([text], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'fatum_report.md';
+            a.click();
+            URL.revokeObjectURL(url);
         }
     </script>
 </body>

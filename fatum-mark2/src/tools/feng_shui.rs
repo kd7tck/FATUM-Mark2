@@ -302,7 +302,13 @@ pub async fn generate_report(config: FengShuiConfig) -> Result<FengShuiReport> {
 
     // 2. Calculate BaZi & Kua
     let bazi_profile = if let (Some(y), Some(m), Some(d)) = (config.birth_year, config.birth_month, config.birth_day) {
-        Some(calculate_bazi(y, m, d, config.birth_hour.unwrap_or(12)))
+        match calculate_bazi(y, m, d, config.birth_hour.unwrap_or(12)) {
+            Ok(profile) => Some(profile),
+            Err(e) => {
+                eprintln!("Warning: Failed to calculate BaZi: {}", e);
+                None
+            }
+        }
     } else {
         None
     };
@@ -435,7 +441,15 @@ pub fn calculate_kua_profile(year: i32, gender: &str) -> KuaProfile {
 
 // --- BAZI CALCULATION ---
 
-pub fn calculate_bazi(year: i32, month: u32, day: u32, hour: u32) -> BaZiProfile {
+pub fn calculate_bazi(year: i32, month: u32, day: u32, hour: u32) -> Result<BaZiProfile> {
+    // Validate inputs
+    if month < 1 || month > 12 {
+        anyhow::bail!("Invalid month: {}", month);
+    }
+    // Validate date existence
+    let target_date = NaiveDate::from_ymd_opt(year, month, day)
+        .ok_or_else(|| anyhow::anyhow!("Invalid date: {}-{}-{}", year, month, day))?;
+
     // Simplified Sexagenary Cycle Logic
     // 1924 = Wood Rat (Jia Zi, 1).
     // Stems: Jia(1), Yi(2), Bing(3), Ding(4), Wu(5), Ji(6), Geng(7), Xin(8), Ren(9), Gui(10)
@@ -509,17 +523,8 @@ pub fn calculate_bazi(year: i32, month: u32, day: u32, hour: u32) -> BaZiProfile
     let month_pillar = format!("{} {}", stems[month_stem_idx], branches[month_branch_idx]);
 
     // Day Pillar
-    // Needs reference. Jan 1, 1900 was a Wu Xu (5, 10) day? (Needs verification, using approx).
-    // Let's use simple offset from known date or just random if not precise?
-    // For "Extensive", we should try to be real.
-    // Jan 1 2024 was Jia Zi (1, 1)? No.
-    // Jan 1 2024 was Monday.
-    // Let's use 1900-01-31 (Lunar New Year) as base?
-    // Reference: Dec 21, 2024 is...
-    // Let's assume a simplified algorithm or hardcoded reference:
     // Jan 1, 2000 was Wu Wu (5, 6). Offset from there.
     let base_date = NaiveDate::from_ymd_opt(2000, 1, 1).unwrap();
-    let target_date = NaiveDate::from_ymd_opt(year, month, day).unwrap_or(base_date);
     let days_passed = (target_date - base_date).num_days();
 
     // 2000-01-01: Wu(4) Wu(6).
@@ -555,14 +560,14 @@ pub fn calculate_bazi(year: i32, month: u32, day: u32, hour: u32) -> BaZiProfile
 
     let hour_pillar = format!("{} {}", stems[hour_stem_idx], branches[hour_branch_idx]);
 
-    BaZiProfile {
+    Ok(BaZiProfile {
         year_pillar,
         month_pillar,
         day_pillar,
         hour_pillar,
         day_master: stems[day_stem_idx].to_string(),
         favorable_elements: vec!["Analysis required".to_string()], // Placeholder for complex logic
-    }
+    })
 }
 
 // --- YEARLY AFFLICTIONS ---

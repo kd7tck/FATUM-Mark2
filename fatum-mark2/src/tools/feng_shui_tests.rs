@@ -82,6 +82,21 @@ mod tests {
     }
 
     #[test]
+    fn test_bazi_invalid_inputs() {
+        use crate::tools::feng_shui::calculate_bazi;
+
+         // Month 13 should return Err
+         let res = calculate_bazi(2024, 13, 1, 12);
+         assert!(res.is_err());
+         assert_eq!(res.unwrap_err().to_string(), "Invalid month: 13");
+
+         // Feb 30 should return Err
+         let res2 = calculate_bazi(2024, 2, 30, 12);
+         assert!(res2.is_err());
+         assert_eq!(res2.unwrap_err().to_string(), "Invalid date: 2024-2-30");
+    }
+
+    #[test]
     fn test_special_formations() {
         // Mock a Sum of Ten Chart (Base + Water = 10)
         // Period 7, Facing S2 (Wu).

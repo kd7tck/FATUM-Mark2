@@ -6,6 +6,13 @@
     --accent: #ff0055;
     --text: #e0e0e0;
     --grid-line: rgba(0, 255, 157, 0.1);
+
+    /* Five Elements */
+    --wood: #4caf50;
+    --fire: #f44336;
+    --earth: #ffeb3b;
+    --metal: #bdc3c7;
+    --water: #2196f3;
 }
 
 body {
@@ -195,11 +202,71 @@ input, select {
     font-family: inherit;
 }
 
-canvas {
+.svg-container {
     border: 2px solid var(--primary);
     box-shadow: 0 0 15px rgba(0, 255, 157, 0.2);
     background: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
+
+#fs-svg-container {
+    width: 600px;
+    height: 600px;
+}
+
+#bazi-svg-container {
+    width: 600px;
+    height: 200px;
+    margin-top: 10px;
+}
+
+#hex-svg-container {
+    width: 200px;
+    height: 200px;
+}
+
+svg text {
+    font-family: 'Orbitron', sans-serif;
+    user-select: none;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { transform: translateY(10px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes pulseGlow {
+    0% { filter: drop-shadow(0 0 2px var(--primary)); }
+    50% { filter: drop-shadow(0 0 8px var(--primary)); }
+    100% { filter: drop-shadow(0 0 2px var(--primary)); }
+}
+
+.anim-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+}
+
+.anim-slide-up {
+    animation: slideUp 0.5s ease-out forwards;
+}
+
+.anim-pulse {
+    animation: pulseGlow 2s infinite;
+}
+
+/* Element Colors */
+.el-wood { fill: var(--wood); }
+.el-fire { fill: var(--fire); }
+.el-earth { fill: var(--earth); }
+.el-metal { fill: var(--metal); }
+.el-water { fill: var(--water); }
 
 .cure-palette {
     display: flex;

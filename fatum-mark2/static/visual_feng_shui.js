@@ -255,6 +255,32 @@ function renderFengShuiSVG(report) {
     // Outer Border
     gridGroup.appendChild(createRect(0, 0, w, h, "none", gridColor));
 
+    // Quantum Heatmap Overlay
+    if (report.quantum && report.quantum.qi_heatmap) {
+        const hm = report.quantum.qi_heatmap;
+        // hm is 3x3. hm[y][x] corresponds to grid sector.
+        for (let y = 0; y < 3; y++) {
+            for (let x = 0; x < 3; x++) {
+                const val = hm[y][x]; // Value roughly 0.0 to 1.5+
+                if (val > 0.1) {
+                    // Determine color based on intensity
+                    // 1.0+ is very good (Wealth). 0.5 is decent.
+                    let fill = "rgba(0, 255, 255, 0.1)"; // Default weak cyan
+                    if (val >= 1.0) fill = "rgba(255, 215, 0, 0.3)"; // Gold for strong wealth
+                    else if (val >= 0.5) fill = "rgba(0, 255, 128, 0.2)"; // Greenish for good
+
+                    const rect = createRect(x * cw, y * ch, cw, ch, fill, "none");
+                    rect.setAttribute("class", "anim-pulse");
+                    // Add title for tooltip (basic)
+                    const title = document.createElementNS(NS, "title");
+                    title.textContent = `Qi Strength: ${val.toFixed(2)}`;
+                    rect.appendChild(title);
+                    gridGroup.appendChild(rect);
+                }
+            }
+        }
+    }
+
     // Inner Lines
     for (let i = 1; i < 3; i++) {
         gridGroup.appendChild(createLine(i * cw, 0, i * cw, h, gridColor));
@@ -408,17 +434,33 @@ async function runZeRi() {
     const start = document.getElementById('zr-start').value;
     const end = document.getElementById('zr-end').value;
     const intention = document.getElementById('zr-intention').value;
+    const usePersonal = document.getElementById('zr-personal').checked;
 
     if (!start || !end) {
         alert("Please specify date range.");
         return;
     }
 
+    let userYear = null;
+    if (usePersonal) {
+        // Try to get from FS Profile Select
+        const pVal = document.getElementById('fs-profile-select').value;
+        if (pVal) {
+            const p = JSON.parse(pVal);
+            userYear = p.birth_year;
+        } else {
+            // Or manual input? For now, warn if no profile selected
+            if (!confirm("No profile selected in 'Feng Shui' tab. Proceed with Generic Mode?")) {
+                return;
+            }
+        }
+    }
+
     const req = {
         start_date: start,
         end_date: end,
         intention: intention || null,
-        user_bazi: null // Placeholder
+        user_birth_year: userYear
     };
 
     const res = await fetch('/api/tools/zeri', {

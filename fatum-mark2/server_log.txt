@@ -1,0 +1,22 @@
+warning: unused import: `crate::tools::astronomy`
+ --> src/tools/ze_ri.rs:2:5
+  |
+2 | use crate::tools::astronomy; // Assuming astronomy handles solar terms/stems/branches
+  |     ^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `offset`
+  --> src/tools/ze_ri.rs:89:9
+   |
+89 |     let offset = (year - 4) % 12; // 2024-4=2020%12 = 4 (Dragon) ?
+   |         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_offset`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: `fatum-mark2` (lib) generated 2 warnings (run `cargo fix --lib -p fatum-mark2` to apply 1 suggestion)
+   Compiling fatum-mark2 v0.1.0 (/app/fatum-mark2)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.72s
+     Running `target/debug/fatum-mark2`
+Starting Web Server...
+FATUM-MARK2 Server listening on http://127.0.0.1:3000

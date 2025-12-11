@@ -1,6 +1,7 @@
 // GLOBAL STATE
 let currentReport = null;
 let currentHexagram = null;
+let floorplanImage = null;
 
 // TABS
 function showTab(tabId) {
@@ -173,6 +174,12 @@ async function runFengShui() {
     renderFengShuiOutput(currentReport);
 }
 
+function updateGridTransform() {
+    if (currentReport) {
+        renderFengShuiSVG(currentReport);
+    }
+}
+
 function renderFengShuiOutput(report) {
     const out = document.getElementById('fs-output');
 
@@ -214,18 +221,44 @@ function renderFengShuiSVG(report) {
     const h = 600;
     const svg = createSVG(w, h);
 
+    // Render Background Image if exists
+    if (floorplanImage) {
+        const img = document.createElementNS(NS, "image");
+        img.setAttributeNS(null, "href", floorplanImage);
+        img.setAttribute("x", "0");
+        img.setAttribute("y", "0");
+        img.setAttribute("width", "100%");
+        img.setAttribute("height", "100%");
+        img.setAttribute("preserveAspectRatio", "xMidYMid meet");
+        svg.appendChild(img);
+    }
+
+    // Grid Group
+    const gridGroup = document.createElementNS(NS, "g");
+    const gx = parseInt(document.getElementById('fs-grid-x').value);
+    const gy = parseInt(document.getElementById('fs-grid-y').value);
+    const scale = parseFloat(document.getElementById('fs-grid-scale').value);
+    const opacity = parseFloat(document.getElementById('fs-grid-opacity').value);
+
+    // Transform origin should be center
+    const cx = w/2;
+    const cy = h/2;
+    // Translate, then translate back to center for scale
+    gridGroup.setAttribute("transform", `translate(${gx}, ${gy}) translate(${cx},${cy}) scale(${scale}) translate(-${cx},-${cy})`);
+    gridGroup.setAttribute("opacity", opacity);
+
     // Draw 3x3 Grid
     const cw = w / 3;
     const ch = h / 3;
     const gridColor = "var(--primary)";
 
     // Outer Border
-    svg.appendChild(createRect(0, 0, w, h, "none", gridColor));
+    gridGroup.appendChild(createRect(0, 0, w, h, "none", gridColor));
 
     // Inner Lines
     for (let i = 1; i < 3; i++) {
-        svg.appendChild(createLine(i * cw, 0, i * cw, h, gridColor));
-        svg.appendChild(createLine(0, i * ch, w, i * ch, gridColor));
+        gridGroup.appendChild(createLine(i * cw, 0, i * cw, h, gridColor));
+        gridGroup.appendChild(createLine(0, i * ch, w, i * ch, gridColor));
     }
 
     // Stars Mapping
@@ -239,11 +272,11 @@ function renderFengShuiSVG(report) {
     };
 
     report.annual_chart.palaces.forEach((p, idx) => {
-        const [gx, gy] = posMap[p.sector] || [1,1];
-        const x = gx * cw;
-        const y = gy * ch;
-        const cx = x + cw/2;
-        const cy = y + ch/2;
+        const [gridX, gridY] = posMap[p.sector] || [1,1];
+        const x = gridX * cw;
+        const y = gridY * ch;
+        const sectorCx = x + cw/2;
+        const sectorCy = y + ch/2;
 
         const group = document.createElementNS(NS, "g");
         group.setAttribute("class", "anim-fade-in");
@@ -261,39 +294,26 @@ function renderFengShuiSVG(report) {
         group.appendChild(createText(x + cw - 40, y + 60, p.water_star, "24", "var(--secondary)", "star-text"));
 
         // Base Star (Center)
-        group.appendChild(createText(cx - 10, cy + 10, p.base_star, "32", "var(--accent)", "star-text"));
+        group.appendChild(createText(sectorCx - 10, sectorCy + 10, p.base_star, "32", "var(--accent)", "star-text"));
 
         // Visiting Star (Bottom Right)
         group.appendChild(createText(x + cw - 30, y + ch - 20, p.visiting_star, "18", "#ffff00", "star-text"));
 
         // Virtual Cures visualization
-        // (Handled by redrawing if needed, logic below in drag handler)
         window.virtualCures.forEach(cure => {
             // Check if cure is in this sector
-            // Cure x,y are grid coords (0-3)
-            if (cure.x >= gx && cure.x < gx+1 && cure.y >= gy && cure.y < gy+1) {
-               // Render cure symbol
-               const cureGroup = document.createElementNS(NS, "g");
-               const cxOffset = (cure.x - gx) * cw;
-               const cyOffset = (cure.y - gy) * ch;
-               // Actually cure x/y from drag are likely exact coordinates normalized to 0-3
-               // Let's assume they are.
-               const absX = cure.x * cw; // 0-3 * 200 = 0-600
-               const absY = cure.y * ch;
-
-               // But we are inside a loop iterating sectors.
-               // Easier to draw all cures AFTER the loop in the main SVG space.
+            if (cure.x >= gridX && cure.x < gridX+1 && cure.y >= gridY && cure.y < gridY+1) {
+                // Keep cure logic here if we want cues attached to sector
             }
         });
 
-        svg.appendChild(group);
+        gridGroup.appendChild(group);
     });
 
-    // Draw Cures Overlay
+    // Draw Cures Overlay (Relative to Grid)
     window.virtualCures.forEach(cure => {
         const cx = cure.x * cw;
         const cy = cure.y * ch;
-        // Simple circle for now
         const circle = document.createElementNS(NS, "circle");
         circle.setAttribute("cx", cx);
         circle.setAttribute("cy", cy);
@@ -309,9 +329,10 @@ function renderFengShuiSVG(report) {
         circle.setAttribute("fill", color);
         circle.setAttribute("stroke", "#fff");
         circle.setAttribute("class", "anim-pulse");
-        svg.appendChild(circle);
+        gridGroup.appendChild(circle);
     });
 
+    svg.appendChild(gridGroup);
     container.appendChild(svg);
 }
 
@@ -379,6 +400,66 @@ function renderBaZiSVG(bazi) {
     });
 
     container.appendChild(svg);
+}
+
+// === DATE SELECTION (ZE RI) ===
+
+async function runZeRi() {
+    const start = document.getElementById('zr-start').value;
+    const end = document.getElementById('zr-end').value;
+    const intention = document.getElementById('zr-intention').value;
+
+    if (!start || !end) {
+        alert("Please specify date range.");
+        return;
+    }
+
+    const req = {
+        start_date: start,
+        end_date: end,
+        intention: intention || null,
+        user_bazi: null // Placeholder
+    };
+
+    const res = await fetch('/api/tools/zeri', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req)
+    });
+
+    const dates = await res.json();
+    renderZeRiOutput(dates);
+}
+
+function renderZeRiOutput(dates) {
+    const out = document.getElementById('zr-output');
+    out.innerHTML = '';
+
+    if (dates.error) {
+        out.innerHTML = `<p class="error">${dates.error}</p>`;
+        return;
+    }
+
+    if (dates.length === 0) {
+        out.innerHTML = `<p>No auspicious dates found in this range.</p>`;
+        return;
+    }
+
+    dates.forEach(d => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        // Color code by score
+        let color = '#fff';
+        if (d.score > 50) color = 'var(--accent)';
+        if (d.score < 50) color = 'var(--fire)'; // Warning
+
+        card.innerHTML = `
+            <h4 style="color:${color}">${d.date} (Score: ${d.score})</h4>
+            <p>${d.summary}</p>
+            ${d.collision ? `<p style="color:var(--fire)">⚠️ ${d.collision}</p>` : ''}
+        `;
+        out.appendChild(card);
+    });
 }
 
 // === DIVINATION ===
@@ -533,6 +614,29 @@ function drag(ev) {
     ev.dataTransfer.setData("type", ev.target.dataset.type);
 }
 
+// File Upload Handling
+document.getElementById('fs-floorplan-upload').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            floorplanImage = evt.target.result;
+            // Trigger redraw
+            if (currentReport) {
+                renderFengShuiSVG(currentReport);
+            } else {
+                // Just draw empty grid if no report yet
+                // But renderFengShuiSVG expects report.
+                // We'll create a dummy report structure or just wait for user to run FS.
+                // For better UX, let's mock a basic report structure just to show the grid?
+                // Or just wait.
+                alert("Floorplan loaded. Please RUN FENG SHUI to see the overlay.");
+            }
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
 // SVG Drop Handling
 const fsContainer = document.getElementById('fs-svg-container');
 fsContainer.addEventListener('dragover', e => e.preventDefault());
@@ -541,18 +645,53 @@ fsContainer.addEventListener('drop', e => {
     const type = e.dataTransfer.getData("type");
     const rect = fsContainer.getBoundingClientRect();
 
-    // Normalize coordinates to 0-3 grid space
-    const x = (e.clientX - rect.left) / (rect.width / 3);
-    const y = (e.clientY - rect.top) / (rect.height / 3);
+    // We need to account for the grid transformation if we want to drop ON the grid sectors?
+    // Or just drop on screen coordinates.
+    // If the grid is moved, the 'sector' at (clientX, clientY) changes.
+    // This is complex. For now, let's keep dropping relative to the *Container* (0-3 space),
+    // but visually it might look off if the grid is moved.
+    // Ideally, we should inverse-transform the coordinates.
+
+    // Simplified: Dropping always works in "Grid Space" if Grid is default.
+    // If Grid is moved, dropping becomes inaccurate visually.
+    // To fix: We need to map screen coords -> transformed grid coords.
+    // This requires matrix math.
+    // MVP: Warn user or just accept it's "relative to container view".
+
+    // Attempting simple inverse based on current slider values:
+    const gx = parseInt(document.getElementById('fs-grid-x').value);
+    const gy = parseInt(document.getElementById('fs-grid-y').value);
+    const scale = parseFloat(document.getElementById('fs-grid-scale').value);
+
+    // Container Center
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
+
+    // Mouse relative to container
+    let mx = e.clientX - rect.left;
+    let my = e.clientY - rect.top;
+
+    // Inverse Transform:
+    // 1. Untranslate (-cx, -cy) (undo the second translation in the SVG transform)
+    // 2. Unscale (/ scale)
+    // 3. Untranslate (-gx, -gy)
+    // 4. Translate (+cx, +cy) (undo the first translation)
+    // Wait, the transform was: translate(gx, gy) translate(cx, cy) scale(s) translate(-cx, -cy)
+    // So X_screen = ( (X_local - cx) * s + cx ) + gx
+    // X_local = ( (X_screen - gx - cx) / s ) + cx
+
+    const localX = ( (mx - gx - cx) / scale ) + cx;
+    const localY = ( (my - gy - cy) / scale ) + cy;
+
+    // Normalize to 0-3 space (width is rect.width/3 per sector)
+    // Assuming SVG viewbox matches rect size (it does, 100%)
+    const x = localX / (rect.width / 3);
+    const y = localY / (rect.height / 3);
 
     window.virtualCures.push({ name: type, x, y });
 
     // Redraw SVG if report exists
     if (currentReport) {
-        // Rerunning might not be needed if we just want to update visual.
-        // But the previous code called runFengShui() to re-calculate heatmaps if they depend on cures.
-        // For now, let's just redraw the SVG locally for instant feedback, then maybe trigger run?
-        // The original code re-ran runFengShui(). Let's stick to that to ensure backend logic applies.
         runFengShui();
     }
 });

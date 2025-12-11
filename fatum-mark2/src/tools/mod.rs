@@ -1,6 +1,4 @@
 pub mod feng_shui;
-pub mod decision;
-pub mod geolocation;
 pub mod astronomy;
 pub mod san_he;
 pub mod qimen;

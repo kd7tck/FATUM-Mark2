@@ -1,15 +1,13 @@
 use axum::{
-    routing::{post, get},
+    routing::post,
     Json, Router,
     response::{IntoResponse, Response},
     http::{header, StatusCode},
 };
 use std::net::SocketAddr;
 use tower_http::services::ServeDir;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
-use crate::tools::decision::{DecisionTool, DecisionInput};
-use crate::tools::geolocation::GeolocationTool;
 use crate::client::CurbyClient;
 use crate::engine::SimulationSession;
 use crate::tools::feng_shui::{FengShuiConfig, generate_report, VirtualCure};
@@ -24,8 +22,6 @@ pub async fn start_server() {
     // I will add the routes for tools first.
 
     let app = Router::new()
-        .route("/api/tools/decision", post(handle_decision))
-        .route("/api/tools/geolocation", post(handle_geolocation))
         .route("/api/tools/fengshui", post(handle_fengshui))
         .route("/api/tools/fengshui/pdf", post(handle_fengshui_pdf))
         .route("/api/tools/divination", post(handle_divination))
@@ -36,40 +32,6 @@ pub async fn start_server() {
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
-}
-
-async fn handle_decision(
-    Json(payload): Json<DecisionInput>,
-) -> Json<serde_json::Value> {
-    match DecisionTool::run(payload).await {
-        Ok(output) => Json(serde_json::to_value(output).unwrap()),
-        Err(e) => Json(serde_json::json!({ "error": e.to_string() })),
-    }
-}
-
-#[derive(Deserialize)]
-struct GeoInput {
-    lat: f64,
-    lon: f64,
-    radius: f64,
-    simulation_count: usize,
-}
-
-async fn handle_geolocation(
-    Json(payload): Json<GeoInput>,
-) -> Json<serde_json::Value> {
-    let mut client = CurbyClient::new();
-    let entropy_result = client.fetch_bulk_randomness(64).await;
-
-    match entropy_result {
-        Ok(entropy) => {
-             let session = SimulationSession::new(entropy);
-             let tool = GeolocationTool::new(session);
-             let result = tool.generate_location(payload.lat, payload.lon, payload.radius, payload.simulation_count);
-             Json(serde_json::to_value(result).unwrap())
-        },
-        Err(e) => Json(serde_json::json!({ "error": e.to_string() }))
-    }
 }
 
 #[derive(Deserialize)]

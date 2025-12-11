@@ -4,33 +4,22 @@ class FengShuiVisualizer {
         this.canvas = document.getElementById(canvasId);
         this.ctx = this.canvas.getContext('2d');
 
-        // State
         this.img = null;
-        this.gridType = 'grid'; // 'grid' or 'pie'
+        this.gridType = 'grid'; // 'grid', 'pie'
         this.gridOpacity = 0.5;
-        this.heatmap = null; // 3x3 array if loaded
-
-        // Transform State (Pan/Zoom of Grid relative to Canvas Center?)
-        // Or Pan/Zoom of Image?
-        // Let's implement: Canvas shows Viewport.
-        // Image is at (imgX, imgY, imgScale, imgRot).
-        // Grid is drawn on top.
-        // WAIT: Requirement is to align 3x3 grid OVER the layout.
-        // Usually, the layout image is the base.
-        // The user moves the GRID to fit the HOUSE on the image.
-        // So Image is static (centered initially), Grid is transformable.
+        this.heatmap = null; // 3x3 array
+        this.cures = []; // Array of {name, x, y} (x,y normalized 0-3)
 
         this.gridState = {
             x: 0,
             y: 0,
-            scale: 200, // Size in pixels
-            rotation: 0 // Radians
+            scale: 200,
+            rotation: 0
         };
 
-        // Interaction State
         this.isDragging = false;
         this.lastMouse = { x: 0, y: 0 };
-        this.mode = 'move'; // 'move'
+        this.selectedCure = null; // For dragging cures
 
         this.resize();
         this.attachListeners();
@@ -39,8 +28,7 @@ class FengShuiVisualizer {
 
     resize() {
         this.canvas.width = this.canvas.parentElement.offsetWidth;
-        this.canvas.height = 400; // Fixed height from CSS
-        // Center grid initially
+        this.canvas.height = 400;
         this.gridState.x = this.canvas.width / 2;
         this.gridState.y = this.canvas.height / 2;
         this.render();
@@ -48,20 +36,20 @@ class FengShuiVisualizer {
 
     loadImage(src) {
         this.img = new Image();
-        this.img.onload = () => {
-            // Auto fit grid size to image?
-            // Maybe just center image.
-            this.render();
-        };
+        this.img.onload = () => { this.render(); };
         this.img.src = src;
     }
 
-    setHeatmap(heatmapData, facingDeg) {
+    setHeatmap(heatmapData) {
         this.heatmap = heatmapData;
-        // facingDeg is used to confirm orientation, but our visual grid defines orientation.
-        // The heatmap data is strictly formatted [Row0=S, Row1=C, Row2=N].
-        // We will draw it onto the grid cells.
         this.render();
+    }
+
+    addCure(name) {
+        // Add to center of grid
+        this.cures.push({ name: name, x: 1.5, y: 1.5 });
+        this.render();
+        this.notifyUpdate();
     }
 
     toggleGridType() {
@@ -86,39 +74,84 @@ class FengShuiVisualizer {
         const c = this.canvas;
 
         c.addEventListener('mousedown', (e) => {
-            this.isDragging = true;
-            this.lastMouse = { x: e.offsetX, y: e.offsetY };
+            const m = this.getMousePos(e);
+            // Check if clicking a cure
+            const gridM = this.toGridCoords(m.x, m.y);
+            const clickedCure = this.cures.find(cure => {
+                const dx = cure.x - gridM.x;
+                const dy = cure.y - gridM.y;
+                return (dx*dx + dy*dy) < 0.1; // Hitbox
+            });
+
+            if (clickedCure) {
+                this.selectedCure = clickedCure;
+            } else {
+                this.isDragging = true;
+            }
+            this.lastMouse = m;
         });
 
         window.addEventListener('mouseup', () => {
             this.isDragging = false;
+            if (this.selectedCure) {
+                this.selectedCure = null;
+                this.notifyUpdate();
+            }
         });
 
         c.addEventListener('mousemove', (e) => {
-            if (!this.isDragging) return;
-            const dx = e.offsetX - this.lastMouse.x;
-            const dy = e.offsetY - this.lastMouse.y;
+            const m = this.getMousePos(e);
 
-            this.gridState.x += dx;
-            this.gridState.y += dy;
-
-            this.lastMouse = { x: e.offsetX, y: e.offsetY };
-            this.render();
+            if (this.selectedCure) {
+                const gridM = this.toGridCoords(m.x, m.y);
+                this.selectedCure.x = gridM.x;
+                this.selectedCure.y = gridM.y;
+                this.render();
+            } else if (this.isDragging) {
+                const dx = m.x - this.lastMouse.x;
+                const dy = m.y - this.lastMouse.y;
+                this.gridState.x += dx;
+                this.gridState.y += dy;
+                this.render();
+            }
+            this.lastMouse = m;
         });
 
         c.addEventListener('wheel', (e) => {
             e.preventDefault();
             if (e.shiftKey) {
-                // Rotate
-                const delta = e.deltaY > 0 ? 0.05 : -0.05;
-                this.gridState.rotation += delta;
+                this.gridState.rotation += (e.deltaY > 0 ? 0.05 : -0.05);
             } else {
-                // Scale
-                const zoom = e.deltaY > 0 ? 0.9 : 1.1;
-                this.gridState.scale *= zoom;
+                this.gridState.scale *= (e.deltaY > 0 ? 0.9 : 1.1);
             }
             this.render();
         });
+    }
+
+    getMousePos(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+
+    toGridCoords(sx, sy) {
+        // Inverse transform
+        const tx = sx - this.gridState.x;
+        const ty = sy - this.gridState.y;
+        const cos = Math.cos(-this.gridState.rotation);
+        const sin = Math.sin(-this.gridState.rotation);
+        const rx = tx * cos - ty * sin;
+        const ry = tx * sin + ty * cos;
+        const cellSize = this.gridState.scale / 3;
+        // 0,0 is center of grid (1.5, 1.5 in grid coords)
+        // grid coord = (rx / cellSize) + 1.5
+        return {
+            x: (rx / cellSize) + 1.5,
+            y: (ry / cellSize) + 1.5
+        };
+    }
+
+    notifyUpdate() {
+        if(window.onCureUpdate) window.onCureUpdate(this.cures);
     }
 
     render() {
@@ -126,367 +159,141 @@ class FengShuiVisualizer {
         const w = this.canvas.width;
         const h = this.canvas.height;
 
-        // Clear
         ctx.fillStyle = '#0a0a0a';
         ctx.fillRect(0, 0, w, h);
 
-        // Draw Image (Centered, Scaled to fit?)
-        // Let's draw image centered at canvas center, scaled to fit height
         if (this.img) {
             ctx.save();
             ctx.translate(w/2, h/2);
-            // Optional: User could transform image instead of grid.
-            // Requirement says "align a 3x3 grid over it".
-            // So Image is static background.
-            const scale = Math.min(w / this.img.width, h / this.img.height) * 0.9;
+            const scale = Math.min(w/this.img.width, h/this.img.height) * 0.9;
             ctx.scale(scale, scale);
             ctx.drawImage(this.img, -this.img.width/2, -this.img.height/2);
             ctx.restore();
         } else {
-            ctx.fillStyle = '#222';
-            ctx.font = '14px Courier New';
+            ctx.fillStyle = '#333';
+            ctx.font = '14px monospace';
             ctx.textAlign = 'center';
-            ctx.fillText("Upload Floorplan to Begin", w/2, h/2);
+            ctx.fillText("Upload Floorplan", w/2, h/2);
         }
 
-        // Draw Grid
         ctx.save();
         ctx.translate(this.gridState.x, this.gridState.y);
         ctx.rotate(this.gridState.rotation);
 
         const size = this.gridState.scale;
-        const half = size / 2;
 
-        ctx.globalAlpha = this.gridOpacity;
-
-        if (this.gridType === 'grid') {
-            this.drawSquareGrid(ctx, size);
-        } else {
-            this.drawPieGrid(ctx, size);
+        // Render Heatmap (Interpolated)
+        if (this.heatmap) {
+            this.drawInterpolatedHeatmap(ctx, size);
         }
-
-        // Draw Facing Indicator (Arrow pointing DOWN relative to grid)
-        // Standard convention: "Facing" is usually bottom of page or specific side.
-        // We will treat the BOTTOM side of the grid (Row 2 end?) as "Facing"?
-        // Wait, earlier logic: "South Up".
-        // In Luo Shu, South (Top) is usually Facing if House Faces South.
-        // Let's assume the user aligns the grid such that the "Facing" side of the house
-        // corresponds to the "Facing" side of the Grid.
-        // We will define the "Facing" side of the Grid as the BOTTOM for intuitive "Entry".
-        // But backend data says Row 0 is South.
-
-        // Let's draw a Green Arrow pointing out from the BOTTOM of the Grid to indicate "Face".
-        // And a Blue Arrow pointing out from the TOP of the Grid to indicate "Sitting".
-        // This helps user align: "Point Green Arrow to Front Door".
-
-        ctx.globalAlpha = 1.0;
-
-        // Facing Arrow (Bottom)
-        ctx.beginPath();
-        ctx.strokeStyle = '#39ff14'; // Neon Green
-        ctx.lineWidth = 3;
-        ctx.moveTo(0, half);
-        ctx.lineTo(0, half + 30);
-        ctx.lineTo(-5, half + 20);
-        ctx.moveTo(0, half + 30);
-        ctx.lineTo(5, half + 20);
-        ctx.stroke();
-
-        // North Arrow indicator (Blue)
-        // Usually North is opposite Facing (South).
-        // But the house might face East.
-        // The Grid itself is just a template.
-        // If the user aligns the grid, they are assigning sectors to space.
-        // If the House Faces South, then Green Arrow (Face) = South.
-        // If House Faces North, Green Arrow = North.
-        // The USER input "Facing Degrees" tells us what the Green Arrow points to.
-
-        // So, we just label the Green Arrow "Facing".
-        // We calculate where "North" is based on the input degrees.
-
-        // Ex: Facing = 180 (S). Green Arrow = S. North is Opposite (Top).
-        // Ex: Facing = 90 (E). Green Arrow = E. North is Left (-90 deg).
-
-        // We need to fetch the current Facing Input from the DOM to draw the North Arrow correctly.
-        const facingInput = document.getElementById('fsFacing');
-        const facingDeg = facingInput ? parseFloat(facingInput.value) : 180;
-
-        // Calculate North relative to Grid orientation
-        // Green Arrow is at 90 deg (Down) visually relative to Grid Center?
-        // Let's say Grid Down is Angle 0 relative to "Face".
-        // North is (Facing - 0) ? No.
-        // North is (Facing + 180) degrees away from Face.
-        // Visually: If Face (Bottom) is South (180), then North (0) is Top.
-        // Angle difference = 180.
-        // If Face (Bottom) is East (90), then North (0) is Left.
-
-        // Rotation of North relative to Facing Vector:
-        // NorthAngle = FaceAngle - FacingDeg?
-        // Let's visualize:
-        // Face is Vector (0, 1) [Down].
-        // If Facing=180 (S), North should be Vector (0, -1) [Up].
-        // If Facing=90 (E), North should be Vector (-1, 0) [Left].
-
-        // Canvas rotation for North Arrow:
-        // We are already rotated by gridState.rotation.
-        // We want to draw North Arrow relative to Grid.
-        // The Angle of "North" relative to "Face" (Bottom/Down) is:
-        // -FacingDeg.
-        // e.g. If Facing 180, North is -180 (Up). Correct.
-        // If Facing 90, North is -90 (Right? No, Left).
-        // Wait, standard compass: N=0, E=90, S=180, W=270.
-        // If Face=90 (E), then N=0 is -90 degrees relative to E.
-        // So yes, Rotate -FacingDeg relative to the Face Vector (Down).
-
-        ctx.save();
-        ctx.rotate((facingDeg - 180) * Math.PI / 180); // Adjust so 180 is Up?
-        // Let's try: Facing 180. (180-180)=0. No rotation.
-        // If we draw arrow pointing UP, it stays UP.
-        // But Face is DOWN. So North is UP. Correct.
-
-        // Facing 90 (E). (90-180) = -90. Rotate -90 (CCW). Arrow points Left.
-        // If Face is Down (E), Left is North. Correct (N -> E is 90 deg CW).
-
-        // So drawing an arrow pointing UP (relative to unrotated context, which is grid space)
-        // works if we rotate by (Facing - 180).
-
-        // Draw North Arrow (Blue)
-        ctx.beginPath();
-        ctx.strokeStyle = '#00ffff';
-        ctx.lineWidth = 2;
-        ctx.moveTo(0, -half - 10); // Start above grid
-        ctx.lineTo(0, -half - 40);
-        ctx.lineTo(-5, -half - 30);
-        ctx.moveTo(0, -half - 40);
-        ctx.lineTo(5, -half - 30);
-        ctx.stroke();
-        ctx.fillStyle = '#00ffff';
-        ctx.fillText("N", -5, -half - 45);
-
-        ctx.restore(); // Pop North rotation
-
-        ctx.restore(); // Pop Grid Transform
-    }
-
-    drawSquareGrid(ctx, size) {
-        const cell = size / 3;
-        const half = size / 2;
-
-        ctx.strokeStyle = '#39ff14';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
 
         // Grid Lines
-        for (let i = 0; i <= 3; i++) {
-            const p = -half + i * cell;
-            ctx.moveTo(p, -half);
-            ctx.lineTo(p, half);
-            ctx.moveTo(-half, p);
-            ctx.lineTo(half, p);
-        }
-        ctx.stroke();
-
-        // Draw Heatmap if exists
-        if (this.heatmap) {
-             // Heatmap mapping:
-             // Row 0: Top (-half to -half+cell)
-             // Row 2: Bottom
-
-             // Wait.
-             // If Facing (Bottom) is South (180).
-             // Then Top is North.
-             // Backend Heatmap: Row 2 is North.
-             // So Row 2 should be at Top?
-             // NO.
-             // My previous logic: "South Up".
-             // If South is Up (Top), then Row 0 (S) is Top.
-             // Facing (Bottom) is North?
-             // That contradicts "Green Arrow (Face) = South".
-
-             // Let's Resolve:
-             // Backend Heatmap is "South Up" (Row 0 = S, Row 2 = N).
-             // If User Inputs Facing = 180 (S).
-             // Green Arrow (Bottom) = S.
-             // So Grid Bottom = S.
-             // Grid Top = N.
-             // So we must draw Row 2 (N) at Top?
-             // No, Grid Top is visually Top.
-             // If Grid Bottom is S, Grid Top is N.
-             // Backend Row 2 is N. So Backend Row 2 goes to Grid Top.
-             // Backend Row 0 is S. So Backend Row 0 goes to Grid Bottom.
-
-             // BUT, what if Facing = 0 (N)?
-             // Green Arrow (Bottom) = N.
-             // Grid Bottom = N.
-             // Grid Top = S.
-             // Backend Row 2 (N) goes to Grid Bottom.
-             // Backend Row 0 (S) goes to Grid Top.
-
-             // CONCLUSION:
-             // The Heatmap orientation depends on the Facing Degree!
-             // Standard Luo Shu is South-Up (S at Top).
-             // If the House Faces South (180), then the "Front" (Bottom of Grid) is South.
-             // That means South is Down.
-             // So the Chart is inverted relative to standard Luo Shu?
-
-             // Let's simply rotate the Heatmap based on the Facing Degree.
-             // The Heatmap is inherently: [0]=S, [1]=C, [2]=N.
-             // Index 0 (S) must point to "South" direction.
-             // Where is South?
-             // We calculated North Vector earlier. South is Opposite.
-
-             // Let's draw the Heatmap cells in a local coordinate system where Up is South.
-             // Then rotate that whole system to align "South" with the actual South vector.
-
-             ctx.save();
-             // Standard Heatmap: Up is South.
-             // We want "Up" (South) to point to... South.
-             // North Arrow rotation was (Facing - 180).
-             // So South Arrow rotation is (Facing).
-             // Actually: North Arrow points to North.
-             // If we rotate context so +Y is South...
-
-             // Let's simpler approach:
-             // Calculate rotation offset for the heatmap.
-             // Base Heatmap: Row 0 is South.
-             // If Facing=180 (S), Bottom is S. Top is N.
-             // So Row 0 (S) should be at Bottom.
-             // Row 2 (N) should be at Top.
-             // Visually, Row 0 is normally drawn at Top (-y).
-             // So we need to rotate the Heatmap drawing 180 deg?
-             // Yes.
-
-             // If Facing=0 (N). Bottom is N. Top is S.
-             // Row 0 (S) should be at Top.
-             // Row 0 is normally drawn at Top.
-             // So 0 deg rotation.
-
-             // Formula: Rotation = (Facing) deg?
-             // Test: Facing 180 -> Rotate 180. Correct.
-             // Test: Facing 0 -> Rotate 0. Correct.
-             // Test: Facing 90 (E). Bottom is E. Left is N. Right is S.
-             // Row 0 (S) should be at Right.
-             // Standard Row 0 is Top.
-             // Rotate Top to Right = +90 deg.
-             // Formula: 90. Correct.
-
-             const facingInput = document.getElementById('fsFacing');
-             const facingDeg = facingInput ? parseFloat(facingInput.value) : 180;
-
-             ctx.rotate(facingDeg * Math.PI / 180);
-
-             // Draw 3x3 Heatmap (Assumed South-Up in data)
-             for(let r=0; r<3; r++) {
-                 for(let c=0; c<3; c++) {
-                     const val = this.heatmap[r][c]; // Density
-                     // Draw rect
-                     // Grid Coords:
-                     // r=0 -> Top (-1.5 to -0.5)
-                     // r=1 -> Mid (-0.5 to 0.5)
-                     // r=2 -> Bot (0.5 to 1.5)
-
-                     // We need to center it.
-                     const x = (c - 1.5) * cell; // c=0 -> -1.5, c=1 -> -0.5
-                     // wait c=0 is left. c=2 is right.
-                     // x = (c - 1) * cell - cell/2 ?
-                     // c=0 -> -cell. -cell/2 = -1.5 cell. Correct.
-                     const y = (r - 1.5) * cell;
-
-                     const alpha = Math.min(0.8, val * 0.8); // Scale density
-                     ctx.fillStyle = `rgba(57, 255, 20, ${alpha})`; // Neon Green
-                     ctx.fillRect(x + cell * 0.5, y + cell * 0.5, cell, cell);
-                     // Correction: x/y calculation above matches left/top of cell relative to center?
-                     // (c-1.5)*cell is left edge.
-                     // (c-1)*cell is center?
-                     // center is (c-1)*cell.
-                     // left is (c-1.5)*cell.
-                     // fillRect takes x,y,w,h.
-                     // Correct.
-                 }
-             }
-             ctx.restore();
-        }
-    }
-
-    drawPieGrid(ctx, size) {
+        ctx.globalAlpha = this.gridOpacity;
+        const cell = size / 3;
         const half = size / 2;
-        ctx.strokeStyle = '#ff00ff';
+        ctx.strokeStyle = '#39ff14';
         ctx.lineWidth = 1;
 
-        ctx.beginPath();
-        ctx.arc(0, 0, half, 0, Math.PI * 2);
-        ctx.stroke();
-
-        // 8 Sectors
-        for(let i=0; i<8; i++) {
-            const angle = i * (Math.PI / 4);
+        if (this.gridType === 'grid') {
             ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.lineTo(Math.cos(angle)*half, Math.sin(angle)*half);
+            for(let i=0; i<=3; i++) {
+                const p = -half + i*cell;
+                ctx.moveTo(p, -half);
+                ctx.lineTo(p, half);
+                ctx.moveTo(-half, p);
+                ctx.lineTo(half, p);
+            }
+            ctx.stroke();
+        } else {
+            // Pie
+             ctx.beginPath();
+            ctx.arc(0, 0, half, 0, Math.PI * 2);
+            ctx.stroke();
+            for(let i=0; i<8; i++) {
+                const a = i * Math.PI/4;
+                ctx.moveTo(0,0);
+                ctx.lineTo(Math.cos(a)*half, Math.sin(a)*half);
+            }
             ctx.stroke();
         }
 
-        // If heatmap, draw sectors?
-        // Pie chart heatmap is trickier to map 3x3 to 8 slices.
-        // Simplified: Center is separate. 8 directions map to 8 outer cells.
-        // We will skip detailed heatmap for Pie mode in this iteration or approx it.
-        if (this.heatmap) {
-             const facingInput = document.getElementById('fsFacing');
-             const facingDeg = facingInput ? parseFloat(facingInput.value) : 180;
-             ctx.save();
-             ctx.rotate(facingDeg * Math.PI / 180);
+        // Cures
+        ctx.globalAlpha = 1.0;
+        this.cures.forEach(c => {
+            const cx = (c.x - 1.5) * cell;
+            const cy = (c.y - 1.5) * cell;
+            ctx.fillStyle = 'gold';
+            ctx.beginPath();
+            ctx.arc(cx, cy, 5, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = 'white';
+            ctx.font = '10px sans-serif';
+            ctx.fillText(c.name, cx+8, cy);
+        });
 
-             // Map:
-             // [0][0] SE -> Angle?
-             // South is Up (-y) in this rotated view.
-             // SE is Top-Left? No, East is Left (in South-Up).
-             // Standard Compass (North Up): E is Right. SE is Bot-Right.
-             // South Up: E is Left. SE is Top-Left.
-             // Angles in Canvas (0 is Right, CW):
-             // Top (-PI/2). Left (PI).
-             // South (Top) -> -PI/2.
-             // SE -> -3*PI/4.
-             // SW -> -PI/4.
-             // E -> PI (or -PI).
-             // W -> 0.
-             // N -> PI/2.
-             // NE -> 3*PI/4.
-             // NW -> PI/4.
+        // Facing Arrow
+        const facingInput = document.getElementById('fsFacing');
+        const facingDeg = facingInput ? parseFloat(facingInput.value) : 180;
 
-             // Mapping indices to pie slices
-             const map = [
-                 { r:0, c:0, start: -Math.PI, end: -Math.PI/2 }, // SE (Approx)
-                 // This is getting complex. Let's just fallback to grid render or skip.
-                 // "yes to all" included Pie chart option.
-                 // I will draw simple colored arcs.
-             ];
-             // Let's implement simpler: Just draw the 8 direction cells.
-             // S (0,1), N (2,1), E (1,0), W (1,2)...
-             // S is Top (-PI/2).
-             this.drawPieSector(ctx, this.heatmap[0][1], -Math.PI*0.625, -Math.PI*0.375, half); // S
-             this.drawPieSector(ctx, this.heatmap[0][2], -Math.PI*0.375, -Math.PI*0.125, half); // SW
-             this.drawPieSector(ctx, this.heatmap[1][2], -Math.PI*0.125, Math.PI*0.125, half);  // W
-             this.drawPieSector(ctx, this.heatmap[2][2], Math.PI*0.125, Math.PI*0.375, half);   // NW
-             this.drawPieSector(ctx, this.heatmap[2][1], Math.PI*0.375, Math.PI*0.625, half);   // N
-             this.drawPieSector(ctx, this.heatmap[2][0], Math.PI*0.625, Math.PI*0.875, half);   // NE
-             this.drawPieSector(ctx, this.heatmap[1][0], Math.PI*0.875, Math.PI*1.125, half);   // E
-             this.drawPieSector(ctx, this.heatmap[0][0], Math.PI*1.125, Math.PI*1.375, half);   // SE
+        // North (Blue) - Relative to grid, based on input
+        ctx.save();
+        ctx.rotate((facingDeg - 180) * Math.PI / 180);
+        ctx.strokeStyle = 'cyan';
+        ctx.beginPath();
+        ctx.moveTo(0, -half-10);
+        ctx.lineTo(0, -half-30);
+        ctx.stroke();
+        ctx.fillText("N", -4, -half-35);
+        ctx.restore();
 
-             // Center
-             ctx.beginPath();
-             ctx.arc(0, 0, half/3, 0, Math.PI*2);
-             ctx.fillStyle = `rgba(57, 255, 20, ${this.heatmap[1][1]})`;
-             ctx.fill();
+        // Face (Green) - Bottom of grid
+        ctx.strokeStyle = '#39ff14';
+        ctx.beginPath();
+        ctx.moveTo(0, half);
+        ctx.lineTo(0, half+20);
+        ctx.stroke();
 
-             ctx.restore();
-        }
+        ctx.restore();
     }
 
-    drawPieSector(ctx, val, start, end, radius) {
-        ctx.beginPath();
-        ctx.moveTo(0,0);
-        ctx.arc(0, 0, radius, start, end);
-        ctx.fillStyle = `rgba(57, 255, 20, ${Math.min(0.8, val*0.8)})`;
-        ctx.fill();
+    drawInterpolatedHeatmap(ctx, size) {
+        // Draw 3x3 heatmap as a 9x9 smoothed grid or use canvas gradient?
+        // Canvas gradient for 3x3 is hard.
+        // We will draw small rects (resolution 10x10 per cell) and interpolate color.
+
+        const cell = size / 3;
+        const res = 10; // Subdivisions per cell
+        const subSize = cell / res;
+        const half = size / 2;
+
+        const facingInput = document.getElementById('fsFacing');
+        const facingDeg = facingInput ? parseFloat(facingInput.value) : 180;
+
+        ctx.save();
+        ctx.rotate(facingDeg * Math.PI / 180);
+
+        for(let r=0; r<3; r++) {
+            for(let c=0; c<3; c++) {
+                // Neighbors for interpolation... simplified: just draw raw blocks with blur?
+                // Or true bilinear.
+                // Let's just draw the cells with high blur context setting.
+                // Actually, just drawing the rects with opacity is "blocky".
+                // User wants "Smooth".
+                // Let's use a radial gradient at center of each cell?
+
+                const val = this.heatmap[r][c];
+                const x = (c - 1.5) * cell; // Center of cell is +0.5 cell
+                const y = (r - 1.5) * cell;
+
+                // Draw a radial gradient for this cell's influence
+                const grad = ctx.createRadialGradient(x + cell/2, y + cell/2, 0, x + cell/2, y + cell/2, cell);
+                grad.addColorStop(0, `rgba(57, 255, 20, ${val * 0.8})`);
+                grad.addColorStop(1, `rgba(57, 255, 20, 0)`);
+
+                ctx.fillStyle = grad;
+                ctx.fillRect(x - cell/2, y - cell/2, cell*2, cell*2); // Overlap
+            }
+        }
+        ctx.restore();
     }
 }

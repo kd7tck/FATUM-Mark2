@@ -71,6 +71,76 @@ function loadProfileIntoForm() {
     // We will store the selected profile to merge into request
 }
 
+// === SVG HELPER FUNCTIONS ===
+const NS = "http://www.w3.org/2000/svg";
+
+function createSVG(w, h) {
+    const svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("width", "100%");
+    svg.setAttribute("height", "100%");
+    svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    return svg;
+}
+
+function createRect(x, y, w, h, fill, stroke) {
+    const rect = document.createElementNS(NS, "rect");
+    rect.setAttribute("x", x);
+    rect.setAttribute("y", y);
+    rect.setAttribute("width", w);
+    rect.setAttribute("height", h);
+    if (fill) rect.setAttribute("fill", fill);
+    if (stroke) {
+        rect.setAttribute("stroke", stroke);
+        rect.setAttribute("stroke-width", "2");
+    }
+    return rect;
+}
+
+function createText(x, y, text, fontSize, fill, className) {
+    const txt = document.createElementNS(NS, "text");
+    txt.setAttribute("x", x);
+    txt.setAttribute("y", y);
+    txt.textContent = text;
+    txt.setAttribute("fill", fill || "#fff");
+    txt.setAttribute("font-size", fontSize);
+    if (className) txt.setAttribute("class", className);
+    return txt;
+}
+
+function createLine(x1, y1, x2, y2, stroke) {
+    const line = document.createElementNS(NS, "line");
+    line.setAttribute("x1", x1);
+    line.setAttribute("y1", y1);
+    line.setAttribute("x2", x2);
+    line.setAttribute("y2", y2);
+    line.setAttribute("stroke", stroke);
+    line.setAttribute("stroke-width", "2");
+    return line;
+}
+
+function getElementColor(char) {
+    // Basic mapping of Heavenly Stems / Earthly Branches to Elements
+    // This is a simplified lookup. Ideally backend provides element data.
+    // Wood: Jia, Yi, Yin, Mao
+    // Fire: Bing, Ding, Si, Wu
+    // Earth: Wu, Ji, Chen, Xu, Chou, Wei
+    // Metal: Geng, Xin, Shen, You
+    // Water: Ren, Gui, Hai, Zi
+
+    const wood = ["Jia", "Yi", "Yin", "Mao"];
+    const fire = ["Bing", "Ding", "Si", "Wu"];
+    const earth = ["Wu", "Ji", "Chen", "Xu", "Chou", "Wei"];
+    const metal = ["Geng", "Xin", "Shen", "You"];
+    const water = ["Ren", "Gui", "Hai", "Zi"];
+
+    if (wood.includes(char)) return "var(--wood)";
+    if (fire.includes(char)) return "var(--fire)";
+    if (earth.includes(char)) return "var(--earth)";
+    if (metal.includes(char)) return "var(--metal)";
+    if (water.includes(char)) return "var(--water)";
+    return "#fff";
+}
+
 // === FENG SHUI ===
 
 async function runFengShui() {
@@ -111,9 +181,12 @@ function renderFengShuiOutput(report) {
     txt += `Formation: ${report.formations.join(', ') || "None"}\n`;
 
     if (report.bazi) {
-        txt += `\n[BAZI PROFILE]\nDay Master: ${report.bazi.day_master}\n`;
-        if (report.bazi.quantum_flux) txt += `>> ${report.bazi.quantum_flux}\n`;
+        // Render SVG BaZi
+        renderBaZiSVG(report.bazi);
+        if (report.bazi.quantum_flux) txt += `\n[BAZI QUANTUM FLUX]\n>> ${report.bazi.quantum_flux}\n`;
         if (report.bazi.alternate_pillars) txt += `>> ${report.bazi.alternate_pillars.join('\n>> ')}\n`;
+    } else {
+        document.getElementById('bazi-svg-container').innerHTML = '';
     }
 
     if (report.quantum) {
@@ -129,83 +202,183 @@ function renderFengShuiOutput(report) {
 
     out.innerText = txt;
 
-    drawChart(report);
+    renderFengShuiSVG(report);
 }
 
-function drawChart(report) {
-    const cvs = document.getElementById('fs-canvas');
-    const ctx = cvs.getContext('2d');
-    const w = cvs.width;
-    const h = cvs.height;
+function renderFengShuiSVG(report) {
+    const container = document.getElementById('fs-svg-container');
+    container.innerHTML = '';
 
-    ctx.clearRect(0, 0, w, h);
+    // Width/Height logic: container is 600x600 via CSS
+    const w = 600;
+    const h = 600;
+    const svg = createSVG(w, h);
 
     // Draw 3x3 Grid
     const cw = w / 3;
     const ch = h / 3;
+    const gridColor = "var(--primary)";
 
-    ctx.strokeStyle = '#00ff9d';
-    ctx.lineWidth = 2;
+    // Outer Border
+    svg.appendChild(createRect(0, 0, w, h, "none", gridColor));
 
-    for (let i=1; i<3; i++) {
-        ctx.beginPath();
-        ctx.moveTo(i*cw, 0); ctx.lineTo(i*cw, h);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(0, i*ch); ctx.lineTo(w, i*ch);
-        ctx.stroke();
+    // Inner Lines
+    for (let i = 1; i < 3; i++) {
+        svg.appendChild(createLine(i * cw, 0, i * cw, h, gridColor));
+        svg.appendChild(createLine(0, i * ch, w, i * ch, gridColor));
     }
 
-    // Draw Stars
-    // Palaces order: Center, NW, W, NE, S, N, SW, E, SE
-    // Map to grid x,y
-    // N is usually bottom in Luo Shu if South is Up?
-    // Standard Map: South Up (Row 0), North Down (Row 2)
-    // S(0,1), SE(0,0), SW(0,2)
-    // E(1,0)?? No.
-    // Let's use the standard "South at Top" visual:
-    // SE | S | SW
-    // E  | C | W
-    // NE | N | NW
-
-    // Palace list has .sector name.
+    // Stars Mapping
+    // SE | S | SW  -> (0,0) (1,0) (2,0)
+    // E  | C | W   -> (0,1) (1,1) (2,1)
+    // NE | N | NW  -> (0,2) (1,2) (2,2)
     const posMap = {
         "SE": [0,0], "S": [1,0], "SW": [2,0],
         "E": [0,1], "Center": [1,1], "W": [2,1],
         "NE": [0,2], "N": [1,2], "NW": [2,2]
     };
 
-    report.annual_chart.palaces.forEach(p => {
+    report.annual_chart.palaces.forEach((p, idx) => {
         const [gx, gy] = posMap[p.sector] || [1,1];
         const x = gx * cw;
         const y = gy * ch;
+        const cx = x + cw/2;
+        const cy = y + ch/2;
 
-        // Heatmap bg?
-        // if (report.quantum.qi_heatmap) ...
+        const group = document.createElementNS(NS, "g");
+        group.setAttribute("class", "anim-fade-in");
+        group.style.animationDelay = `${idx * 0.1}s`;
 
-        ctx.fillStyle = '#00ff9d';
-        ctx.font = '20px Orbitron';
-        ctx.fillText(p.sector, x + 10, y + 30);
+        // Sector Name
+        const secText = createText(x + 10, y + 25, p.sector, "16", "var(--primary)");
+        secText.setAttribute("class", "anim-pulse");
+        group.appendChild(secText);
 
-        // Stars: M-W-B (Mountain-Water-Base) or Standard Left-Right
-        // Standard: Mountain (Left), Water (Right), Base/Period (Center), Annual (Bottom Right)
+        // Mountain Star (Top Left)
+        group.appendChild(createText(x + 20, y + 60, p.mountain_star, "24", "#ccc", "star-text"));
 
-        ctx.font = 'bold 24px monospace';
+        // Water Star (Top Right)
+        group.appendChild(createText(x + cw - 40, y + 60, p.water_star, "24", "var(--secondary)", "star-text"));
 
-        ctx.fillStyle = '#ccc'; // Mountain
-        ctx.fillText(p.mountain_star, x + 20, y + 60);
+        // Base Star (Center)
+        group.appendChild(createText(cx - 10, cy + 10, p.base_star, "32", "var(--accent)", "star-text"));
 
-        ctx.fillStyle = '#00b8ff'; // Water
-        ctx.fillText(p.water_star, x + cw - 40, y + 60);
+        // Visiting Star (Bottom Right)
+        group.appendChild(createText(x + cw - 30, y + ch - 20, p.visiting_star, "18", "#ffff00", "star-text"));
 
-        ctx.fillStyle = '#ff0055'; // Base
-        ctx.font = '30px monospace';
-        ctx.fillText(p.base_star, x + cw/2 - 10, y + ch/2 + 10);
+        // Virtual Cures visualization
+        // (Handled by redrawing if needed, logic below in drag handler)
+        window.virtualCures.forEach(cure => {
+            // Check if cure is in this sector
+            // Cure x,y are grid coords (0-3)
+            if (cure.x >= gx && cure.x < gx+1 && cure.y >= gy && cure.y < gy+1) {
+               // Render cure symbol
+               const cureGroup = document.createElementNS(NS, "g");
+               const cxOffset = (cure.x - gx) * cw;
+               const cyOffset = (cure.y - gy) * ch;
+               // Actually cure x/y from drag are likely exact coordinates normalized to 0-3
+               // Let's assume they are.
+               const absX = cure.x * cw; // 0-3 * 200 = 0-600
+               const absY = cure.y * ch;
 
-        ctx.fillStyle = '#ffff00'; // Annual Visiting
-        ctx.font = '18px monospace';
-        ctx.fillText(p.visiting_star, x + cw - 30, y + ch - 20);
+               // But we are inside a loop iterating sectors.
+               // Easier to draw all cures AFTER the loop in the main SVG space.
+            }
+        });
+
+        svg.appendChild(group);
     });
+
+    // Draw Cures Overlay
+    window.virtualCures.forEach(cure => {
+        const cx = cure.x * cw;
+        const cy = cure.y * ch;
+        // Simple circle for now
+        const circle = document.createElementNS(NS, "circle");
+        circle.setAttribute("cx", cx);
+        circle.setAttribute("cy", cy);
+        circle.setAttribute("r", 15);
+
+        let color = "#fff";
+        if (cure.name === "Fire") color = "var(--fire)";
+        if (cure.name === "Water") color = "var(--water)";
+        if (cure.name === "Wood") color = "var(--wood)";
+        if (cure.name === "Metal") color = "var(--metal)";
+        if (cure.name === "Earth") color = "var(--earth)";
+
+        circle.setAttribute("fill", color);
+        circle.setAttribute("stroke", "#fff");
+        circle.setAttribute("class", "anim-pulse");
+        svg.appendChild(circle);
+    });
+
+    container.appendChild(svg);
+}
+
+function renderBaZiSVG(bazi) {
+    const container = document.getElementById('bazi-svg-container');
+    container.innerHTML = '';
+    const w = 600;
+    const h = 200;
+    const svg = createSVG(w, h);
+
+    // 4 Pillars: Year, Month, Day, Hour
+    // Each takes 1/4 width
+    const pw = w / 4;
+    const pillars = [
+        { name: "YEAR", data: bazi.year_pillar },
+        { name: "MONTH", data: bazi.month_pillar },
+        { name: "DAY", data: bazi.day_pillar },
+        { name: "HOUR", data: bazi.hour_pillar }
+    ];
+
+    pillars.forEach((p, i) => {
+        const x = i * pw;
+        const cx = x + pw / 2;
+
+        const group = document.createElementNS(NS, "g");
+        group.setAttribute("class", "anim-slide-up");
+        group.style.animationDelay = `${i * 0.15}s`;
+
+        // Box border
+        group.appendChild(createRect(x + 5, 5, pw - 10, h - 10, "rgba(255,255,255,0.05)", "var(--grid-line)"));
+
+        // Header
+        const title = createText(cx, 30, p.name, "18", "var(--secondary)");
+        title.setAttribute("text-anchor", "middle");
+        group.appendChild(title);
+
+        if (p.data) {
+            // Split "Stem Branch" string. Assuming format "Stem Branch" or "StemBranch"
+            // The backend usually returns "Wood Rat" (Element Animal) or "Jia Zi" (Pinyin).
+            // Let's assume the string contains two parts.
+            // If the backend returns "Yang Wood Rat", it might be longer.
+            // Let's try to split by space.
+            const parts = p.data.split(' ');
+            const stem = parts[0] || "?";
+            const branch = parts.slice(1).join(' ') || "?";
+
+            // Stem (Top)
+            const stemColor = getElementColor(stem);
+            const stemTxt = createText(cx, 80, stem, "24", stemColor);
+            stemTxt.setAttribute("text-anchor", "middle");
+            stemTxt.setAttribute("font-weight", "bold");
+            group.appendChild(stemTxt);
+
+            // Branch (Bottom)
+            const branchColor = getElementColor(branch); // This might need mapping animal -> element
+            const branchTxt = createText(cx, 130, branch, "24", branchColor);
+            branchTxt.setAttribute("text-anchor", "middle");
+            branchTxt.setAttribute("font-weight", "bold");
+            group.appendChild(branchTxt);
+
+            // Element Labels (optional, small)
+        }
+
+        svg.appendChild(group);
+    });
+
+    container.appendChild(svg);
 }
 
 // === DIVINATION ===
@@ -224,34 +397,41 @@ async function castHexagram() {
         <p><strong>Judgment:</strong> ${currentHexagram.transformed_hexagram.judgment}</p>`;
     }
 
-    drawHexagram(currentHexagram);
+    renderHexagramSVG(currentHexagram);
 }
 
-function drawHexagram(hex) {
-    const cvs = document.getElementById('hex-canvas');
-    const ctx = cvs.getContext('2d');
-    const w = cvs.width;
-    const h = cvs.height;
-    ctx.clearRect(0,0,w,h);
+function renderHexagramSVG(hex) {
+    const container = document.getElementById('hex-svg-container');
+    container.innerHTML = '';
+    const w = 200;
+    const h = 200;
+    const svg = createSVG(w, h);
 
-    const lineH = 20;
-    const gap = 10;
-    const startY = h - 30; // Draw bottom up
+    const lineH = 15;
+    const gap = 15;
+    const totalH = (6 * lineH) + (5 * gap);
+    const startY = (h - totalH) / 2 + totalH - lineH; // Centered vertically, drawing bottom up
 
-    // Draw lines
     hex.lines.forEach((line, i) => {
         const y = startY - (i * (lineH + gap));
-        ctx.fillStyle = (hex.changing_lines.includes(i)) ? '#ff0055' : '#00ff9d';
+        const color = (hex.changing_lines.includes(i)) ? "var(--accent)" : "var(--primary)";
+
+        const group = document.createElementNS(NS, "g");
+        group.setAttribute("class", "anim-fade-in");
+        group.style.animationDelay = `${i * 0.1}s`;
 
         if (line === 1) {
-            // Yang
-            ctx.fillRect(20, y, 160, lineH);
+            // Yang (Solid)
+            group.appendChild(createRect(20, y, 160, lineH, color));
         } else {
-            // Yin
-            ctx.fillRect(20, y, 70, lineH);
-            ctx.fillRect(110, y, 70, lineH);
+            // Yin (Broken)
+            group.appendChild(createRect(20, y, 70, lineH, color));
+            group.appendChild(createRect(110, y, 70, lineH, color));
         }
+        svg.appendChild(group);
     });
+
+    container.appendChild(svg);
 }
 
 // === HISTORY ===
@@ -353,17 +533,26 @@ function drag(ev) {
     ev.dataTransfer.setData("type", ev.target.dataset.type);
 }
 
-// Canvas Drop
-const fsCanvas = document.getElementById('fs-canvas');
-fsCanvas.addEventListener('dragover', e => e.preventDefault());
-fsCanvas.addEventListener('drop', e => {
+// SVG Drop Handling
+const fsContainer = document.getElementById('fs-svg-container');
+fsContainer.addEventListener('dragover', e => e.preventDefault());
+fsContainer.addEventListener('drop', e => {
     e.preventDefault();
     const type = e.dataTransfer.getData("type");
-    const rect = fsCanvas.getBoundingClientRect();
+    const rect = fsContainer.getBoundingClientRect();
+
+    // Normalize coordinates to 0-3 grid space
     const x = (e.clientX - rect.left) / (rect.width / 3);
     const y = (e.clientY - rect.top) / (rect.height / 3);
 
     window.virtualCures.push({ name: type, x, y });
-    // Re-run to update heatmap
-    runFengShui();
+
+    // Redraw SVG if report exists
+    if (currentReport) {
+        // Rerunning might not be needed if we just want to update visual.
+        // But the previous code called runFengShui() to re-calculate heatmaps if they depend on cures.
+        // For now, let's just redraw the SVG locally for instant feedback, then maybe trigger run?
+        // The original code re-ran runFengShui(). Let's stick to that to ensure backend logic applies.
+        runFengShui();
+    }
 });

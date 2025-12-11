@@ -6,6 +6,7 @@ use crate::engine::SimulationSession;
 use crate::tools::astronomy::get_solar_term;
 use crate::tools::san_he::{analyze_san_he, SanHeAnalysis};
 use crate::tools::qimen::{calculate_qimen, QiMenChart};
+use crate::tools::chinese_meta::{get_stem, get_branch};
 
 /// Configuration for a Feng Shui analysis session.
 ///
@@ -270,15 +271,12 @@ pub fn calculate_bazi(year: i32, month: u32, day: u32, hour: u32, session: Optio
     // This formula aligns term index to branch index (0=Rat, 1=Ox...)
     let month_branch_idx = ((term_idx + 2) / 2 + 2) % 12;
 
-    let stems = ["Jia", "Yi", "Bing", "Ding", "Wu", "Ji", "Geng", "Xin", "Ren", "Gui"];
-    let branches = ["Zi (Rat)", "Chou (Ox)", "Yin (Tiger)", "Mao (Rabbit)", "Chen (Dragon)", "Si (Snake)", "Wu (Horse)", "Wei (Goat)", "Shen (Monkey)", "You (Rooster)", "Xu (Dog)", "Hai (Pig)"];
-
     // Year Pillar Calculation
     // Base year 1924 is Jia Zi (Wood Rat)
     let year_offset = (year - 1924).rem_euclid(60);
     let year_stem_idx = year_offset.rem_euclid(10) as usize;
     let year_branch_idx = year_offset.rem_euclid(12) as usize;
-    let year_pillar = format!("{} {}", stems[year_stem_idx], branches[year_branch_idx]);
+    let year_pillar = format!("{} {}", get_stem(year_stem_idx), get_branch(year_branch_idx));
 
     // Month Pillar Calculation
     // Uses the "Five Tigers Chasing" method based on Year Stem
@@ -286,7 +284,7 @@ pub fn calculate_bazi(year: i32, month: u32, day: u32, hour: u32, session: Optio
     // Month branch starts at Tiger (idx 2)
     let month_offset_from_tiger = (month_branch_idx + 12 - 2) % 12;
     let month_stem_idx = (month_start_stem + month_offset_from_tiger) % 10;
-    let month_pillar = format!("{} {}", stems[month_stem_idx as usize], branches[month_branch_idx as usize]);
+    let month_pillar = format!("{} {}", get_stem(month_stem_idx as usize), get_branch(month_branch_idx as usize));
 
     // Day Pillar Calculation
     // Requires counting days from a reference point (Jan 1 2000)
@@ -295,14 +293,14 @@ pub fn calculate_bazi(year: i32, month: u32, day: u32, hour: u32, session: Optio
     // Reference offset for 2000-01-01
     let day_stem_idx = (4 + days).rem_euclid(10) as usize;
     let day_branch_idx = (6 + days).rem_euclid(12) as usize;
-    let day_pillar = format!("{} {}", stems[day_stem_idx], branches[day_branch_idx]);
+    let day_pillar = format!("{} {}", get_stem(day_stem_idx), get_branch(day_branch_idx));
 
     // Hour Pillar Calculation
     // Uses "Five Rats Chasing" method based on Day Stem
     let hour_branch_idx = ((hour + 1) / 2).rem_euclid(12) as usize;
     let hour_start_stem = (day_stem_idx as u32 % 5 * 2) % 10;
     let hour_stem_idx = (hour_start_stem + hour_branch_idx as u32) % 10;
-    let hour_pillar = format!("{} {}", stems[hour_stem_idx as usize], branches[hour_branch_idx]);
+    let hour_pillar = format!("{} {}", get_stem(hour_stem_idx as usize), get_branch(hour_branch_idx));
 
     // Quantum Additions
     let mut quantum_flux = None;
@@ -320,13 +318,13 @@ pub fn calculate_bazi(year: i32, month: u32, day: u32, hour: u32, session: Optio
         // Recalc hour with offset
         let alt_hour_idx = (hour_branch_idx as i32 + alt_hour_offset).rem_euclid(12) as usize;
         let alt_h_stem_idx = (hour_start_stem + alt_hour_idx as u32) % 10;
-        let alt_pillar = format!("{} {}", stems[alt_h_stem_idx as usize], branches[alt_hour_idx]);
+        let alt_pillar = format!("{} {}", get_stem(alt_h_stem_idx as usize), get_branch(alt_hour_idx));
         alternate_pillars = Some(vec![format!("Alternate Timeline (Hour {}): {}", if alt_hour_offset > 0 { "+2h" } else { "-2h" }, alt_pillar)]);
     }
 
     Ok(BaZiProfile {
         year_pillar, month_pillar, day_pillar, hour_pillar,
-        day_master: stems[day_stem_idx].to_string(),
+        day_master: get_stem(day_stem_idx).to_string(),
         favorable_elements: vec!["Solar Term Adjusted".to_string()],
         quantum_flux,
         alternate_pillars,

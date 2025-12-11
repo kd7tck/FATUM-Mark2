@@ -2,343 +2,137 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FATUM-MARK2 | Quantum Tools</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FATUM MARK 2 // QUANTUM FENG SHUI</title>
     <link rel="stylesheet" href="editor.css">
-    <style>
-        :root {
-            --neon-green: #39ff14;
-            --neon-pink: #ff00ff;
-            --neon-blue: #00ffff;
-            --dark-bg: #050505;
-            --panel-bg: #111;
-        }
-        body {
-            background-color: var(--dark-bg);
-            color: #ddd;
-            font-family: 'Courier New', Courier, monospace;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        h1 {
-            color: var(--neon-green);
-            text-shadow: 0 0 10px var(--neon-green);
-            margin-bottom: 20px;
-        }
-        /* TABS */
-        .tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            width: 100%;
-            max-width: 1400px;
-            border-bottom: 1px solid #333;
-        }
-        .tab {
-            padding: 10px 20px;
-            cursor: pointer;
-            border: 1px solid transparent;
-            border-bottom: none;
-            color: #888;
-        }
-        .tab.active {
-            color: var(--neon-blue);
-            border-color: #333;
-            border-bottom: 1px solid var(--dark-bg);
-            background: var(--panel-bg);
-            margin-bottom: -1px;
-        }
-        .tab-content {
-            display: none;
-            width: 100%;
-            max-width: 1400px;
-        }
-        .tab-content.active {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 20px;
-        }
-
-        .card {
-            background: var(--panel-bg);
-            border: 1px solid #333;
-            padding: 20px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.8);
-            position: relative;
-            overflow: hidden;
-        }
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; height: 2px;
-            background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
-        }
-        .card h2 {
-            color: var(--neon-blue);
-            margin-top: 0;
-        }
-        button {
-            background: transparent;
-            border: 1px solid var(--neon-green);
-            color: var(--neon-green);
-            padding: 10px 20px;
-            cursor: pointer;
-            font-family: inherit;
-            font-weight: bold;
-            transition: all 0.3s;
-            margin-top: 10px;
-            width: 100%;
-        }
-        button:hover {
-            background: var(--neon-green);
-            color: black;
-            box-shadow: 0 0 15px var(--neon-green);
-        }
-        input, select, textarea {
-            background: #222;
-            border: 1px solid #444;
-            color: white;
-            padding: 8px;
-            width: 100%;
-            margin-bottom: 10px;
-            box-sizing: border-box;
-            font-family: inherit;
-        }
-        .result {
-            margin-top: 15px;
-            padding: 10px;
-            background: #000;
-            border: 1px dashed #555;
-            min-height: 50px;
-            white-space: pre-wrap;
-            font-size: 0.9em;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-        .visualizer-container {
-            margin-top: 15px;
-            border: 1px solid #333;
-            background: #000;
-            padding: 10px;
-        }
-        .visual-controls {
-            display: flex;
-            gap: 5px;
-            flex-wrap: wrap;
-            margin-bottom: 10px;
-            align-items: center;
-        }
-        .btn-mini {
-            width: auto;
-            margin-top: 0;
-            padding: 5px 10px;
-            font-size: 0.8em;
-        }
-        #fsCanvas {
-            width: 100%;
-            height: 400px;
-            background: #0a0a0a;
-            cursor: grab;
-            border: 1px solid #444;
-        }
-        .hexagram {
-            font-size: 4em;
-            line-height: 0.8em;
-            color: var(--neon-pink);
-            text-align: center;
-            margin: 20px 0;
-        }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 </head>
 <body>
-    <h1>FATUM-MARK2 // QUANTUM ENGINE</h1>
+    <div class="scanlines"></div>
+    <div class="glow-overlay"></div>
 
-    <div class="tabs">
-        <div class="tab active" onclick="showTab('fengshui')">Feng Shui</div>
-        <div class="tab" onclick="showTab('divination')">Divination</div>
-    </div>
+    <div id="app">
+        <header>
+            <h1>FATUM MARK 2 <span class="blink">_ONLINE</span></h1>
+            <nav>
+                <button onclick="showTab('profiles')" class="nav-btn">Profiles</button>
+                <button onclick="showTab('fengshui')" class="nav-btn active">Feng Shui</button>
+                <button onclick="showTab('divination')" class="nav-btn">Divination</button>
+                <button onclick="showTab('history')" class="nav-btn">History</button>
+            </nav>
+        </header>
 
-    <!-- FENG SHUI TAB -->
-    <div id="tab-fengshui" class="tab-content active">
-        <div class="card" style="grid-column: span 2;">
-            <h2>Quantum Feng Shui (Period 9 Ready)</h2>
-            <div style="display:flex; gap:20px;">
-                <div style="flex: 1;">
-                    <label>Birth Date</label>
-                    <div style="display: flex; gap: 10px;">
-                        <input type="number" id="fsYear" placeholder="YYYY" style="width: 40%;">
-                        <input type="number" id="fsMonth" placeholder="MM" style="width: 30%;">
-                        <input type="number" id="fsDay" placeholder="DD" style="width: 30%;">
+        <main>
+            <!-- PROFILES TAB -->
+            <section id="tab-profiles" class="tab-content" style="display:none;">
+                <h2>USER PROFILES</h2>
+                <div class="panel">
+                    <div class="form-group">
+                        <label>Name:</label> <input type="text" id="p-name">
                     </div>
-                    <label>Birth Hour (0-23)</label>
-                    <input type="number" id="fsHour" placeholder="HH">
+                    <div class="form-row">
+                        <div><label>Year:</label> <input type="number" id="p-year" value="1990"></div>
+                        <div><label>Month:</label> <input type="number" id="p-month" value="1"></div>
+                        <div><label>Day:</label> <input type="number" id="p-day" value="1"></div>
+                        <div><label>Hour:</label> <input type="number" id="p-hour" value="12"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Gender:</label>
+                        <select id="p-gender">
+                            <option value="M">Male</option>
+                            <option value="F">Female</option>
+                        </select>
+                    </div>
+                    <button class="cyber-btn" onclick="createProfile()">REGISTER ENTITY</button>
+                </div>
+                <div id="profile-list" class="data-grid">
+                    <!-- Loaded dynamically -->
+                </div>
+            </section>
 
-                    <label>Gender</label>
-                    <select id="fsGender">
-                        <option value="M">Male</option>
-                        <option value="F">Female</option>
-                    </select>
+            <!-- FENG SHUI TAB -->
+            <section id="tab-fengshui" class="tab-content">
+                <div class="sidebar">
+                    <h3>PARAMETERS</h3>
+                    <div class="form-group">
+                        <label>Active Profile:</label>
+                        <select id="fs-profile-select" onchange="loadProfileIntoForm()">
+                            <option value="">-- Manual Input --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Construction Year:</label>
+                        <input type="number" id="fs-year" value="2004">
+                    </div>
+                    <div class="form-group">
+                        <label>Facing (Deg):</label>
+                        <input type="number" id="fs-facing" value="180">
+                    </div>
+                    <div class="form-group">
+                        <label>Intention:</label>
+                        <input type="text" id="fs-intention" placeholder="Wealth, Health...">
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="fs-quantum">
+                            <span class="checkmark"></span>
+                            Quantum Mode
+                        </label>
+                    </div>
+                    <button class="cyber-btn" onclick="runFengShui()">INITIATE SEQUENCE</button>
+                    <button class="cyber-btn secondary" onclick="saveReport('fengshui')">ARCHIVE RESULT</button>
+                    <button class="cyber-btn secondary" onclick="downloadPdf()">DOWNLOAD PDF</button>
 
-                    <label>Facing Direction (Deg)</label>
-                    <input type="number" id="fsFacing" placeholder="0-360" value="180">
-                    <label>Construction Year</label>
-                    <input type="number" id="fsConstYear" value="2024">
-
-                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                        <input type="checkbox" id="fsQuantum" style="width: auto; margin: 0;">
-                        <span style="color: var(--neon-pink);">Enable Quantum Mutation</span>
-                    </label>
-
-                    <button onclick="runFengShui()">CALCULATE CHART</button>
-                    <button onclick="downloadPdf()" style="border-color: var(--neon-blue); color:var(--neon-blue)">DOWNLOAD PDF REPORT</button>
+                    <hr>
+                    <div id="virtual-cures-panel">
+                        <h4>VIRTUAL CURES</h4>
+                        <div class="cure-palette">
+                            <div class="cure-item" draggable="true" ondragstart="drag(event)" data-type="Metal">Metal</div>
+                            <div class="cure-item" draggable="true" ondragstart="drag(event)" data-type="Water">Water</div>
+                            <div class="cure-item" draggable="true" ondragstart="drag(event)" data-type="Wood">Wood</div>
+                            <div class="cure-item" draggable="true" ondragstart="drag(event)" data-type="Fire">Fire</div>
+                            <div class="cure-item" draggable="true" ondragstart="drag(event)" data-type="Earth">Earth</div>
+                        </div>
+                    </div>
                 </div>
 
-                <div style="flex: 1.5;">
-                    <label>Visual Layout & Virtual Cures</label>
-                    <div class="visualizer-container">
-                         <div class="visual-controls">
-                             <label for="fsUpload" class="btn-mini" style="border:1px solid #555; cursor:pointer;">Upload Plan</label>
-                             <input type="file" id="fsUpload" accept="image/*" style="display:none;" onchange="handleFengShuiImage(this)">
-                             <button class="btn-mini" onclick="fsVisual.toggleGridType()">Mode</button>
-                             <button class="btn-mini" onclick="fsVisual.resetView()">Reset</button>
-
-                             <span style="color:gold; margin-left: 10px;">Add Cure:</span>
-                             <button class="btn-mini" style="border-color:gold; color:gold" onclick="fsVisual.addCure('Metal')">+Metal</button>
-                             <button class="btn-mini" style="border-color:gold; color:gold" onclick="fsVisual.addCure('Water')">+Water</button>
-                             <button class="btn-mini" style="border-color:gold; color:gold" onclick="fsVisual.addCure('Fire')">+Fire</button>
-                         </div>
-                         <canvas id="fsCanvas"></canvas>
-                         <div style="font-size:0.8em; color:#888;">Drag Grid to Move. Scroll to Zoom/Rotate. Drag Gold Dots (Cures) to adjust Qi.</div>
+                <div class="viewport">
+                    <canvas id="fs-canvas" width="600" height="600"></canvas>
+                    <div id="fs-output" class="console-output">
+                        > Awaiting Input...
                     </div>
                 </div>
-            </div>
-            <div id="fsResult" class="result">Ready.</div>
-        </div>
-    </div>
+            </section>
 
-    <!-- DIVINATION TAB -->
-    <div id="tab-divination" class="tab-content">
-        <div class="card">
-            <h2>Quantum I Ching</h2>
-            <p>Consult the Quantum Field using entropy-derived coin tosses.</p>
-            <textarea id="divQuestion" placeholder="Enter your question..."></textarea>
-            <button onclick="runDivination()">CAST HEXAGRAM</button>
-            <div id="divResult" class="result"></div>
-        </div>
+            <!-- DIVINATION TAB -->
+            <section id="tab-divination" class="tab-content" style="display:none;">
+                <h2>QUANTUM I CHING</h2>
+                <div class="divination-container">
+                    <div class="hex-display">
+                        <canvas id="hex-canvas" width="200" height="200"></canvas>
+                    </div>
+                    <div class="controls">
+                        <p>Accessing CURBy Quantum Entropy Source...</p>
+                        <button class="cyber-btn" onclick="castHexagram()">CAST HEXAGRAM</button>
+                        <button class="cyber-btn secondary" onclick="saveReport('divination')">ARCHIVE RESULT</button>
+                    </div>
+                </div>
+                <div id="divination-text" class="console-output large-text">
+                    <!-- Text goes here -->
+                </div>
+            </section>
+
+            <!-- HISTORY TAB -->
+            <section id="tab-history" class="tab-content" style="display:none;">
+                <h2>ARCHIVES</h2>
+                <button class="cyber-btn small" onclick="loadHistory()">REFRESH</button>
+                <div id="history-list" class="data-grid">
+                    <!-- Loaded dynamically -->
+                </div>
+            </section>
+        </main>
     </div>
 
     <script src="visual_feng_shui.js"></script>
-    <script>
-        let fsVisual = null;
-        let lastFsData = null;
-
-        window.onload = function() {
-            fsVisual = new FengShuiVisualizer('fsCanvas');
-            window.onCureUpdate = () => {
-                // When cures move, re-run analysis (debounced?)
-                // For now, user clicks Calculate again to apply cures
-                console.log("Cures updated. Click Calculate to apply.");
-            };
-        };
-
-        function showTab(name) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            document.querySelectorAll('.tab')[['fengshui','divination'].indexOf(name)].classList.add('active');
-            document.getElementById('tab-' + name).classList.add('active');
-            if (name === 'fengshui') fsVisual.resize();
-        }
-
-        function handleFengShuiImage(input) {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = (e) => fsVisual.loadImage(e.target.result);
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
-
-        async function runFengShui() {
-            const resultDiv = document.getElementById('fsResult');
-            resultDiv.innerHTML = "Calculating...";
-
-            const payload = {
-                birth_year: parseInt(document.getElementById('fsYear').value) || null,
-                birth_month: parseInt(document.getElementById('fsMonth').value) || null,
-                birth_day: parseInt(document.getElementById('fsDay').value) || null,
-                birth_hour: parseInt(document.getElementById('fsHour').value) || null,
-                gender: document.getElementById('fsGender').value,
-                facing_degrees: parseFloat(document.getElementById('fsFacing').value) || 180,
-                construction_year: parseInt(document.getElementById('fsConstYear').value) || 2024,
-                quantum_mode: document.getElementById('fsQuantum').checked,
-                virtual_cures: fsVisual.cures
-            };
-            lastFsData = payload; // Save for PDF
-
-            try {
-                const res = await fetch('/api/tools/fengshui', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json();
-                if (data.error) throw new Error(data.error);
-
-                if (data.quantum.qi_heatmap) fsVisual.setHeatmap(data.quantum.qi_heatmap);
-
-                let html = `<strong>Annual Chart: ${data.annual_chart.label}</strong><br>`;
-                html += `Focus Sector: ${data.quantum.focus_sector}<br>`;
-                if (data.san_he) html += `San He: ${data.san_he.water_method}<br>`;
-                if (data.qimen) html += `Qi Men: ${data.qimen.door} Door / ${data.qimen.deity}<br>`;
-
-                html += `<br><strong>Advice:</strong><br>`;
-                data.advice.forEach(a => html += `- ${a}<br>`);
-
-                resultDiv.innerHTML = html;
-            } catch(e) {
-                resultDiv.innerText = "Error: " + e.message;
-            }
-        }
-
-        async function downloadPdf() {
-            if (!lastFsData) return alert("Run analysis first.");
-            const res = await fetch('/api/tools/fengshui/pdf', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(lastFsData)
-            });
-            if (res.ok) {
-                const blob = await res.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = "fengshui_report.pdf";
-                a.click();
-            } else {
-                alert("Failed to generate PDF");
-            }
-        }
-
-        async function runDivination() {
-            const resDiv = document.getElementById('divResult');
-            resDiv.innerHTML = "Casting...";
-            try {
-                const res = await fetch('/api/tools/divination', { method: 'POST' });
-                const data = await res.json();
-                if(data.error) throw new Error(data.error);
-
-                let linesHtml = "";
-                // Draw Hexagram lines (Top to Bottom is usually index 5 to 0)
-                for(let i=5; i>=0; i--) {
-                    linesHtml += data.lines[i] === 1 ? "———————<br>" : "— — — —<br>";
-                }
-
-                resDiv.innerHTML = `<div class="hexagram">${linesHtml}</div>`;
-                resDiv.innerHTML += `<strong>#${data.number} ${data.name}</strong><br>`;
-                resDiv.innerHTML += `Judgment: ${data.judgment}`;
-            } catch(e) { resDiv.innerText = e.message; }
-        }
-    </script>
 </body>
 </html>

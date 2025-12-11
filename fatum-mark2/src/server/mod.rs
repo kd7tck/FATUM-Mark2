@@ -1,31 +1,39 @@
 use axum::{
-    routing::post,
-    Json, Router,
+    routing::{get, post},
+    Json, Router, Extension,
     response::{IntoResponse, Response},
     http::{header, StatusCode},
 };
 use std::net::SocketAddr;
+use std::sync::Arc;
 use tower_http::services::ServeDir;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::client::CurbyClient;
 use crate::engine::SimulationSession;
 use crate::tools::feng_shui::{FengShuiConfig, generate_report, VirtualCure};
 use crate::tools::divination::DivinationTool;
 use crate::tools::pdf_generator::generate_pdf;
-// use crate::db::Db; // Needed for profiles, but let's keep it simple for now or init properly
+use crate::db::Db;
+
+#[derive(Clone)]
+pub struct AppState {
+    db: Arc<Db>,
+}
 
 pub async fn start_server() {
-    // Ideally inject Db pool here, but we will simplify and init locally or global if needed.
-    // For this implementation, we will skip DB integration in the routes for brevity unless requested.
-    // "Yes to all" implies I should do it. But Step 2 (DB) didn't implement the full Routes.
-    // I will add the routes for tools first.
+    let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite:fatum.db".to_string());
+    let db = Db::new(&db_url).await.expect("Failed to initialize database");
+    let shared_state = AppState { db: Arc::new(db) };
 
     let app = Router::new()
         .route("/api/tools/fengshui", post(handle_fengshui))
         .route("/api/tools/fengshui/pdf", post(handle_fengshui_pdf))
         .route("/api/tools/divination", post(handle_divination))
-        .fallback_service(ServeDir::new("static"));
+        .route("/api/profiles", get(list_profiles).post(create_profile))
+        .route("/api/history", get(list_history).post(save_history))
+        .fallback_service(ServeDir::new("static"))
+        .layer(Extension(shared_state));
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     println!("FATUM-MARK2 Server listening on http://{}", addr);
@@ -124,5 +132,122 @@ async fn handle_divination() -> Json<serde_json::Value> {
         }
     } else {
         Json(serde_json::json!({ "error": "Failed to fetch entropy" }))
+    }
+}
+
+// === DB HANDLERS ===
+
+#[derive(Serialize, Deserialize)]
+struct ProfileInput {
+    name: String,
+    birth_year: i32,
+    birth_month: i32,
+    birth_day: i32,
+    birth_hour: i32,
+    gender: String,
+}
+
+#[derive(sqlx::FromRow, Serialize)]
+struct ProfileRow {
+    id: i64,
+    name: String,
+    birth_year: Option<i64>,
+    birth_month: Option<i64>,
+    birth_day: Option<i64>,
+    birth_hour: Option<i64>,
+    gender: Option<String>,
+}
+
+async fn create_profile(
+    Extension(state): Extension<AppState>,
+    Json(input): Json<ProfileInput>,
+) -> Json<serde_json::Value> {
+    let res = sqlx::query(
+        "INSERT INTO profiles (name, birth_year, birth_month, birth_day, birth_hour, gender) VALUES (?, ?, ?, ?, ?, ?)"
+    )
+    .bind(input.name)
+    .bind(input.birth_year)
+    .bind(input.birth_month)
+    .bind(input.birth_day)
+    .bind(input.birth_hour)
+    .bind(input.gender)
+    .execute(&state.db.pool)
+    .await;
+
+    match res {
+        Ok(r) => Json(serde_json::json!({ "id": r.last_insert_rowid() })),
+        Err(e) => Json(serde_json::json!({ "error": e.to_string() })),
+    }
+}
+
+async fn list_profiles(
+    Extension(state): Extension<AppState>,
+) -> Json<serde_json::Value> {
+    let res = sqlx::query_as::<_, ProfileRow>("SELECT id, name, birth_year, birth_month, birth_day, birth_hour, gender FROM profiles ORDER BY created_at DESC")
+        .fetch_all(&state.db.pool)
+        .await;
+
+    match res {
+        Ok(rows) => {
+             Json(serde_json::json!(rows))
+        },
+        Err(e) => Json(serde_json::json!({ "error": e.to_string() })),
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+struct HistoryInput {
+    profile_id: Option<i64>,
+    tool_type: String,
+    summary: String,
+    full_report: serde_json::Value,
+}
+
+#[derive(sqlx::FromRow, Serialize)]
+struct HistoryRow {
+    id: i64,
+    tool_type: String,
+    summary: Option<String>,
+    created_at: Option<chrono::NaiveDateTime>, // or String depending on driver
+    profile_name: Option<String>,
+}
+
+async fn save_history(
+    Extension(state): Extension<AppState>,
+    Json(input): Json<HistoryInput>,
+) -> Json<serde_json::Value> {
+    let res = sqlx::query(
+        "INSERT INTO history (profile_id, tool_type, summary, full_report) VALUES (?, ?, ?, ?)"
+    )
+    .bind(input.profile_id)
+    .bind(input.tool_type)
+    .bind(input.summary)
+    .bind(input.full_report)
+    .execute(&state.db.pool)
+    .await;
+
+    match res {
+        Ok(r) => Json(serde_json::json!({ "id": r.last_insert_rowid() })),
+        Err(e) => Json(serde_json::json!({ "error": e.to_string() })),
+    }
+}
+
+async fn list_history(
+    Extension(state): Extension<AppState>,
+) -> Json<serde_json::Value> {
+    let res = sqlx::query_as::<_, HistoryRow>(
+        "SELECT h.id, h.tool_type, h.summary, h.created_at, p.name as profile_name
+         FROM history h
+         LEFT JOIN profiles p ON h.profile_id = p.id
+         ORDER BY h.created_at DESC LIMIT 50"
+    )
+    .fetch_all(&state.db.pool)
+    .await;
+
+    match res {
+        Ok(rows) => {
+             Json(serde_json::json!(rows))
+        },
+        Err(e) => Json(serde_json::json!({ "error": e.to_string() })),
     }
 }

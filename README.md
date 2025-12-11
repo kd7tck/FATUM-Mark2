@@ -2,7 +2,7 @@
 
 **Quantum Randomness Simulation Engine**
 
-FATUM-MARK2 is a suite of decision-making tools powered by **CURBy**, the University of Colorado Randomness Beacon. It leverages quantum randomness to run simulations and identify statistical patterns in the noise, offering a unique approach to decision-making, geolocation, and more.
+FATUM-MARK2 is a suite of decision-making tools powered by **CURBy**, the University of Colorado Randomness Beacon. It leverages quantum randomness to run simulations and identify statistical patterns in the noise, offering a unique approach to decision-making with feng-shui.
 
 ## Features
 

@@ -67,6 +67,8 @@ pub struct BaZiProfile {
     pub hour_pillar: String,
     pub day_master: String,
     pub favorable_elements: Vec<String>,
+    pub quantum_flux: Option<String>, // New field for real-time elemental strength
+    pub alternate_pillars: Option<Vec<String>>, // New field for probabilistic birth
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -126,7 +128,6 @@ pub struct QiFlowAnalysis {
 
 /// CLI Entry Point
 pub async fn run_feng_shui_cli() -> Result<()> {
-    // Kept for backward compatibility, simplified output
     println!("=== QUANTUM FENG SHUI & FLYING STARS SYSTEM (EXPANDED) ===");
     Ok(())
 }
@@ -137,9 +138,9 @@ pub async fn generate_report(config: FengShuiConfig) -> Result<FengShuiReport> {
     let entropy = client.fetch_bulk_randomness(4096).await?;
     let session = SimulationSession::new(entropy);
 
-    // BaZi with Solar Terms
+    // BaZi with Solar Terms and Quantum Mode
     let bazi_profile = if let (Some(y), Some(m), Some(d)) = (config.birth_year, config.birth_month, config.birth_day) {
-        match calculate_bazi(y, m, d, config.birth_hour.unwrap_or(12)) {
+        match calculate_bazi(y, m, d, config.birth_hour.unwrap_or(12), if config.quantum_mode { Some(&session) } else { None }) {
             Ok(profile) => Some(profile),
             Err(_) => None,
         }
@@ -173,7 +174,7 @@ pub async fn generate_report(config: FengShuiConfig) -> Result<FengShuiReport> {
 
     // Advanced Schools
     let san_he = Some(analyze_san_he(config.facing_degrees, None));
-    let qimen = Some(calculate_qimen(current_year, current_month, current_day, 12)); // Default noon if not provided
+    let qimen = Some(calculate_qimen(current_year, current_month, current_day, config.birth_hour.unwrap_or(12)));
 
     // Period 9 Logic
     let mut p9_compliance = Vec::new();
@@ -210,7 +211,7 @@ pub async fn generate_report(config: FengShuiConfig) -> Result<FengShuiReport> {
 
 // === LOGIC UPDATES ===
 
-pub fn calculate_bazi(year: i32, month: u32, day: u32, hour: u32) -> Result<BaZiProfile> {
+pub fn calculate_bazi(year: i32, month: u32, day: u32, hour: u32, session: Option<&SimulationSession>) -> Result<BaZiProfile> {
     if month < 1 || month > 12 { anyhow::bail!("Invalid month: {}", month); }
     if day < 1 || day > 31 { anyhow::bail!("Invalid Day"); }
     // Check NaiveDate first
@@ -232,7 +233,6 @@ pub fn calculate_bazi(year: i32, month: u32, day: u32, hour: u32) -> Result<BaZi
     let month_start_stem = (year_stem_idx as u32 % 5 * 2 + 2) % 10;
     let month_offset_from_tiger = (month_branch_idx + 12 - 2) % 12;
     let month_stem_idx = (month_start_stem + month_offset_from_tiger) % 10;
-
     let month_pillar = format!("{} {}", stems[month_stem_idx as usize], branches[month_branch_idx as usize]);
 
     // Day
@@ -248,10 +248,32 @@ pub fn calculate_bazi(year: i32, month: u32, day: u32, hour: u32) -> Result<BaZi
     let hour_stem_idx = (hour_start_stem + hour_branch_idx as u32) % 10;
     let hour_pillar = format!("{} {}", stems[hour_stem_idx as usize], branches[hour_branch_idx]);
 
+    // Quantum Additions
+    let mut quantum_flux = None;
+    let mut alternate_pillars = None;
+
+    if let Some(sess) = session {
+        // Real-time Flux: Simulate current energy boosting specific elements
+        let elements = vec!["Wood", "Fire", "Earth", "Metal", "Water"];
+        let flux_element = sess.simulate_decision(&elements.iter().map(|s| s.to_string()).collect::<Vec<_>>(), None, 20).winner;
+        quantum_flux = Some(format!("Quantum Field is currently amplifying: {}.", flux_element));
+
+        // Probabilistic Birth: Simulate 'what if' the user was born +/- 1 hour
+        // Simplified: Just randomize one alternate hour pillar
+        let alt_hour_offset = if sess.simulate_decision(&vec!["+".to_string(), "-".to_string()], None, 5).winner == "+" { 1 } else { -1 };
+        // Recalc hour
+        let alt_hour_idx = (hour_branch_idx as i32 + alt_hour_offset).rem_euclid(12) as usize;
+        let alt_h_stem_idx = (hour_start_stem + alt_hour_idx as u32) % 10;
+        let alt_pillar = format!("{} {}", stems[alt_h_stem_idx as usize], branches[alt_hour_idx]);
+        alternate_pillars = Some(vec![format!("Alternate Timeline (Hour {}): {}", if alt_hour_offset > 0 { "+2h" } else { "-2h" }, alt_pillar)]);
+    }
+
     Ok(BaZiProfile {
         year_pillar, month_pillar, day_pillar, hour_pillar,
         day_master: stems[day_stem_idx].to_string(),
         favorable_elements: vec!["Solar Term Adjusted".to_string()],
+        quantum_flux,
+        alternate_pillars,
     })
 }
 

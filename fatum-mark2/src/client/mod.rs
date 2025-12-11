@@ -2,12 +2,14 @@ use anyhow::{Context, Result};
 use base64::prelude::*;
 use reqwest::Client;
 use serde::Deserialize;
+use rand_chacha::ChaCha20Rng;
+use rand_chacha::rand_core::{RngCore, SeedableRng};
+use rand::rngs::OsRng;
 
 #[derive(Debug, Clone)]
 pub struct CurbyClient {
     client: Client,
     base_url: String,
-    // Caching the chain ID so we don't fetch it every time
     chain_id_cache: Option<String>,
 }
 
@@ -75,7 +77,7 @@ struct RandomnessBytes {
 impl CurbyClient {
     pub fn new() -> Self {
         Self {
-            client: Client::new(),
+            client: Client::builder().timeout(std::time::Duration::from_secs(5)).build().unwrap(),
             base_url: "https://random.colorado.edu".to_string(),
             chain_id_cache: None,
         }
@@ -109,84 +111,67 @@ impl CurbyClient {
         anyhow::bail!("CURBy-Q chain not found");
     }
 
-    /// Fetches at least `min_bytes` of quantum randomness.
-    /// This may involve making multiple requests to the API, stepping backwards through rounds.
+    /// Fetches a seed from Quantum source, then expands it via CSPRNG (ChaCha20).
+    /// Fallback to OS RNG if network fails.
     pub async fn fetch_bulk_randomness(&mut self, min_bytes: usize) -> Result<Vec<u8>> {
-        let chain_id = self.get_quantum_chain_id().await?;
-        let mut buffer = Vec::with_capacity(min_bytes);
-
-        // Fetch latest pulse info to get the start round
-        let latest_url = format!("{}/api/chains/{}/pulses/latest", self.base_url, chain_id);
-        let latest_resp: PulseResponse = self.client.get(&latest_url)
-            .send()
-            .await?
-            .json()
-            .await
-            .context("Failed to fetch latest pulse")?;
-
-        let mut current_round = latest_resp.data.content.payload.round;
-        let mut failures = 0;
-        const MAX_FAILURES: usize = 10;
-
-        println!("Starting bulk fetch: goal {} bytes, starting round {}", min_bytes, current_round);
-
-        while buffer.len() < min_bytes {
-            let round_url = format!("{}/api/chains/{}/pulses/{}", self.base_url, chain_id, current_round);
-            let resp_result = self.client.get(&round_url).send().await;
-
-            match resp_result {
-                Ok(resp) => {
-                    if resp.status().is_success() {
-                         match resp.json::<PulseResponse>().await {
-                            Ok(pulse) => {
-                                let payload = pulse.data.content.payload;
-                                if payload.stage == "randomness" {
-                                    if let Some(wrapper) = payload.randomness {
-                                        let mut base64_string = wrapper.slash.bytes;
-                                        // Pad base64 if necessary
-                                        while base64_string.len() % 4 != 0 {
-                                            base64_string.push('=');
-                                        }
-                                        match BASE64_STANDARD.decode(&base64_string) {
-                                            Ok(mut bytes) => {
-                                                buffer.append(&mut bytes);
-                                            },
-                                            Err(e) => {
-                                                eprintln!("Failed to decode base64 for round {}: {}", current_round, e);
-                                            }
-                                        }
-                                    }
-                                }
-                            },
-                            Err(e) => eprintln!("Failed to parse pulse JSON for round {}: {}", current_round, e),
-                        }
-                    } else {
-                        eprintln!("API returned non-success for round {}: {}", current_round, resp.status());
-                        failures += 1;
-                    }
-                },
-                Err(e) => {
-                    eprintln!("Request failed for round {}: {}", current_round, e);
-                    failures += 1;
-                }
+        let seed = match self.fetch_single_pulse().await {
+            Ok(s) => {
+                println!("Successfully seeded with Quantum Entropy.");
+                s
+            },
+            Err(e) => {
+                eprintln!("Quantum Fetch Failed ({}), falling back to OS Entropy.", e);
+                let mut os_seed = [0u8; 32];
+                OsRng.fill_bytes(&mut os_seed);
+                os_seed.to_vec()
             }
+        };
 
-            if failures > MAX_FAILURES {
-                anyhow::bail!("Too many failures fetching randomness.");
-            }
-
-            if current_round == 0 {
-                 anyhow::bail!("Reached round 0 but could not satisfy byte requirement.");
-            }
-            current_round -= 1;
+        // Seed must be 32 bytes for ChaCha20
+        let mut key = [0u8; 32];
+        for (i, &b) in seed.iter().enumerate().take(32) {
+            key[i] = b;
         }
+
+        let mut rng = ChaCha20Rng::from_seed(key);
+        let mut buffer = vec![0u8; min_bytes];
+        rng.fill_bytes(&mut buffer);
 
         Ok(buffer)
     }
 
-    // Kept for backward compatibility if needed, though we will primarily use fetch_bulk_randomness
-    pub async fn get_latest_quantum_randomness(&mut self) -> Result<Vec<u8>> {
-        self.fetch_bulk_randomness(1).await // Minimal fetch
+    async fn fetch_single_pulse(&mut self) -> Result<Vec<u8>> {
+        let chain_id = self.get_quantum_chain_id().await?;
+        let latest_url = format!("{}/api/chains/{}/pulses/latest", self.base_url, chain_id);
+
+        let latest_resp: PulseResponse = self.client.get(&latest_url)
+            .send()
+            .await?
+            .json()
+            .await?;
+
+        let mut current_round = latest_resp.data.content.payload.round;
+
+        // Try up to 5 rounds backwards to find valid randomness
+        for _ in 0..5 {
+            let round_url = format!("{}/api/chains/{}/pulses/{}", self.base_url, chain_id, current_round);
+            let resp = self.client.get(&round_url).send().await?;
+            if resp.status().is_success() {
+                if let Ok(pulse) = resp.json::<PulseResponse>().await {
+                     let payload = pulse.data.content.payload;
+                     if payload.stage == "randomness" {
+                         if let Some(wrapper) = payload.randomness {
+                             let mut base64_string = wrapper.slash.bytes;
+                             while base64_string.len() % 4 != 0 { base64_string.push('='); }
+                             return Ok(BASE64_STANDARD.decode(&base64_string)?);
+                         }
+                     }
+                }
+            }
+            if current_round == 0 { break; }
+            current_round -= 1;
+        }
+        anyhow::bail!("No valid randomness found in recent pulses");
     }
 }
 

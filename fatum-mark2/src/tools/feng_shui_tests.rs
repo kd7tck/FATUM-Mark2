@@ -42,8 +42,7 @@ mod tests {
         // 2024 (Dragon) Month 2 (Rabbit - Start of March approx)
         // Dragon: Offset (2024-1900)%12 = 8.
         // Group B (Ox, Goat, Dragon, Dog) -> Start Star 5.
-        // Month 2 -> Chinese Month 1 (Tiger)? No, Month 2 (March) is Rabbit usually.
-        // My simplified logic: Month 2 input -> Chinese Month 1 (Feb 4 - Mar 5)
+        // Month 2 -> Chinese Month 1 (Feb 4 - Mar 5)
         // Wait, if month=2 (Feb), chinese_month_idx = 1.
         // Ruling Star = 5 - (1 - 1) = 5.
         // So Feb 2024 should have Star 5 in center.
@@ -86,12 +85,12 @@ mod tests {
         use crate::tools::feng_shui::calculate_bazi;
 
          // Month 13 should return Err
-         let res = calculate_bazi(2024, 13, 1, 12);
+         let res = calculate_bazi(2024, 13, 1, 12, None);
          assert!(res.is_err());
          assert_eq!(res.unwrap_err().to_string(), "Invalid month: 13");
 
          // Feb 30 should return Err
-         let res2 = calculate_bazi(2024, 2, 30, 12);
+         let res2 = calculate_bazi(2024, 2, 30, 12, None);
          assert!(res2.is_err());
          assert_eq!(res2.unwrap_err().to_string(), "Invalid date: 2024-2-30");
     }

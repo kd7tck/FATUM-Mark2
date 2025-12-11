@@ -158,8 +158,6 @@
     <div class="tabs">
         <div class="tab active" onclick="showTab('fengshui')">Feng Shui</div>
         <div class="tab" onclick="showTab('divination')">Divination</div>
-        <div class="tab" onclick="showTab('decision')">Decision</div>
-        <div class="tab" onclick="showTab('geo')">Geolocation</div>
     </div>
 
     <!-- FENG SHUI TAB -->
@@ -231,33 +229,6 @@
         </div>
     </div>
 
-    <!-- DECISION TAB -->
-    <div id="tab-decision" class="tab-content">
-        <div class="card" style="grid-column: span 2;">
-            <h2>Quantum Decision</h2>
-            <div id="dSimpleInput">
-                <label>Options (comma separated)</label>
-                <input type="text" id="decisionOptions" placeholder="Yes, No, Maybe">
-            </div>
-            <label>Simulations</label>
-            <select id="decisionSims">
-                <option value="1000">1,000</option>
-                <option value="100000">100,000</option>
-            </select>
-            <button onclick="runDecision()">INITIATE</button>
-            <div id="decisionResult" class="result"></div>
-        </div>
-    </div>
-
-    <!-- GEO TAB -->
-    <div id="tab-geo" class="tab-content">
-        <div class="card">
-            <h2>Quantum Geolocation</h2>
-            <button onclick="runGeolocation()">GENERATE ATTRACTOR</button>
-            <div id="geoResult" class="result"></div>
-        </div>
-    </div>
-
     <script src="visual_feng_shui.js"></script>
     <script>
         let fsVisual = null;
@@ -275,7 +246,7 @@
         function showTab(name) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            document.querySelectorAll('.tab')[['fengshui','divination','decision','geo'].indexOf(name)].classList.add('active');
+            document.querySelectorAll('.tab')[['fengshui','divination'].indexOf(name)].classList.add('active');
             document.getElementById('tab-' + name).classList.add('active');
             if (name === 'fengshui') fsVisual.resize();
         }
@@ -368,10 +339,6 @@
                 resDiv.innerHTML += `Judgment: ${data.judgment}`;
             } catch(e) { resDiv.innerText = e.message; }
         }
-
-        // ... (Geo and Decision logic similar to before, simplified for this file)
-        async function runDecision() { /* ... similar logic ... */ }
-        async function runGeolocation() { /* ... similar logic ... */ }
     </script>
 </body>
 </html>

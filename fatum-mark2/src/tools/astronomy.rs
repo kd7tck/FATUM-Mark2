@@ -1,5 +1,3 @@
-use std::f64::consts::PI;
-
 /// Calculates the Solar Term (0-24) based on the Sun's ecliptic longitude.
 /// This is a simplified astronomical calculation.
 /// Uses a simplified version of VSOP87 or similar approximation for "Low Precision" but better than fixed dates.

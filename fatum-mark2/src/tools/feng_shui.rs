@@ -1,10 +1,8 @@
-use std::io::{self, Write};
 use anyhow::Result;
 use chrono::{Datelike, NaiveDate};
 use serde::{Deserialize, Serialize};
 use crate::client::CurbyClient;
 use crate::engine::SimulationSession;
-use std::collections::HashMap;
 use crate::tools::astronomy::get_solar_term;
 use crate::tools::san_he::{analyze_san_he, SanHeAnalysis};
 use crate::tools::qimen::{calculate_qimen, QiMenChart};
@@ -260,7 +258,7 @@ pub fn calculate_bazi(year: i32, month: u32, day: u32, hour: u32) -> Result<BaZi
 fn run_quantum_analysis(
     session: &SimulationSession,
     chart: &FlyingStarChart,
-    monthly: Option<&FlyingStarChart>,
+    _monthly: Option<&FlyingStarChart>,
     intention: Option<&str>,
     virtual_cures: Option<&Vec<VirtualCure>>,
 ) -> QuantumAnalysis {

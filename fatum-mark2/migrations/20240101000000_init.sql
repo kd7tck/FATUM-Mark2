@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS profiles (
 CREATE TABLE IF NOT EXISTS history (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     profile_id INTEGER,
-    tool_type TEXT NOT NULL, -- 'fengshui', 'divination', 'decision'
+    tool_type TEXT NOT NULL, -- 'fengshui', 'divination'
     summary TEXT, -- Short JSON or text summary
     full_report JSON, -- The full JSON output
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,

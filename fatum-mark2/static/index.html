@@ -117,6 +117,37 @@
             width: 100%;
             height: 100%;
         }
+
+        /* Feng Shui Visualizer Styles */
+        .visualizer-container {
+            margin-top: 15px;
+            border: 1px solid #333;
+            background: #000;
+            padding: 10px;
+        }
+        .visual-controls {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        .btn-mini {
+            width: auto;
+            margin-top: 0;
+            padding: 5px 10px;
+            font-size: 0.8em;
+        }
+        #fsCanvas {
+            width: 100%;
+            height: 400px;
+            background: #0a0a0a;
+            cursor: grab;
+            border: 1px solid #444;
+        }
+        #fsCanvas:active {
+            cursor: grabbing;
+        }
     </style>
 </head>
 <body>
@@ -139,7 +170,7 @@
                 <input type="text" id="decisionWeights" placeholder="1.0, 0.5, 2.0">
             </div>
 
-            <!-- New Visual Editor Section -->
+            <!-- Visual Editor Section -->
             <div id="dVisualInput" style="display:none;">
                 <div class="editor-toolbar">
                     <button class="btn-mini" onclick="window.editorInstance.addNode()">+ Add Node</button>
@@ -190,42 +221,97 @@
         </div>
 
         <!-- FENG SHUI TOOL -->
-        <div class="card">
+        <div class="card" style="grid-column: span 2;">
             <h2>Quantum Feng Shui</h2>
-            <label>Birth Date (Optional)</label>
-            <div style="display: flex; gap: 10px;">
-                <input type="number" id="fsYear" placeholder="YYYY" style="width: 40%;">
-                <input type="number" id="fsMonth" placeholder="MM" style="width: 30%;">
-                <input type="number" id="fsDay" placeholder="DD" style="width: 30%;">
+            <div style="display:flex; gap:20px;">
+                <div style="flex: 1;">
+                    <label>Birth Date (Optional)</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="number" id="fsYear" placeholder="YYYY" style="width: 40%;">
+                        <input type="number" id="fsMonth" placeholder="MM" style="width: 30%;">
+                        <input type="number" id="fsDay" placeholder="DD" style="width: 30%;">
+                    </div>
+                    <label>Birth Hour (Optional, 0-23)</label>
+                    <input type="number" id="fsHour" placeholder="HH">
+
+                    <label>Gender (Optional)</label>
+                    <select id="fsGender">
+                        <option value="">Unknown/Skip</option>
+                        <option value="M">Male</option>
+                        <option value="F">Female</option>
+                    </select>
+
+                    <label>Facing Direction (Compass Degrees)</label>
+                    <input type="number" id="fsFacing" placeholder="0-360" value="180">
+
+                    <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; cursor: pointer;">
+                        <input type="checkbox" id="fsQuantum" style="width: auto; margin: 0;">
+                        <span style="color: var(--neon-pink);">Enable Quantum Star Mutation</span>
+                    </label>
+
+                    <button onclick="runFengShui()">CALCULATE</button>
+                </div>
+
+                <!-- Visual Interface -->
+                <div style="flex: 1.5;">
+                    <label>Visual Layout (Optional)</label>
+                    <div class="visualizer-container">
+                         <div class="visual-controls">
+                             <label for="fsUpload" class="btn-mini" style="border:1px solid #555; cursor:pointer;">Upload Plan</label>
+                             <input type="file" id="fsUpload" accept="image/*" style="display:none;" onchange="handleFengShuiImage(this)">
+
+                             <button class="btn-mini" onclick="fsVisual.toggleGridType()">Type: Grid/Pie</button>
+                             <button class="btn-mini" onclick="fsVisual.resetView()">Reset View</button>
+
+                             <label style="font-size:0.8em; color:#aaa; margin-left:auto;">
+                                 Opac: <input type="range" min="0" max="1" step="0.1" value="0.5" style="width:50px;" oninput="fsVisual.setOpacity(this.value)">
+                             </label>
+                         </div>
+                         <canvas id="fsCanvas"></canvas>
+                         <div style="font-size:0.8em; color:#888; margin-top:5px;">
+                             Controls: Drag to Move. Scroll to Zoom. Shift+Scroll to Rotate.
+                             <br>
+                             <span style="color:var(--neon-blue)">Blue Arrow = North</span> | <span style="color:var(--neon-green)">Green Arrow = Facing</span>
+                         </div>
+                    </div>
+                </div>
             </div>
-            <label>Birth Hour (Optional, 0-23)</label>
-            <input type="number" id="fsHour" placeholder="HH">
 
-            <label>Gender (Optional)</label>
-            <select id="fsGender">
-                <option value="">Unknown/Skip</option>
-                <option value="M">Male</option>
-                <option value="F">Female</option>
-            </select>
-
-            <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; cursor: pointer;">
-                <input type="checkbox" id="fsQuantum" style="width: auto; margin: 0;">
-                <span style="color: var(--neon-pink);">Enable Quantum Star Mutation</span>
-            </label>
-
-            <button onclick="runFengShui()">CALCULATE</button>
             <button onclick="downloadReport()" id="fsDownload" style="display:none; margin-top: 5px; border-color: var(--neon-blue); color: var(--neon-blue);">DOWNLOAD FULL REPORT</button>
             <div id="fsResult" class="result">Ready.</div>
         </div>
     </div>
 
     <script src="editor.js"></script>
+    <script src="visual_feng_shui.js"></script>
     <script>
         let currentFengShuiData = null;
+        let fsVisual = null;
+
+        // Initialize Visualizer on load
+        window.onload = function() {
+            fsVisual = new FengShuiVisualizer('fsCanvas');
+            // Check if user already loaded tree
+             if(document.getElementById('radioVisual').checked) {
+                 initEditor();
+             }
+        };
+
+        function handleFengShuiImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    fsVisual.loadImage(e.target.result);
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // --- Existing Functions ---
+        // (Copied and adapted from previous version)
 
         function toggleDecisionMode() {
             const mode = document.querySelector('input[name="dMode"]:checked').value;
-
             document.getElementById('dSimpleInput').style.display = 'none';
             document.getElementById('dVisualInput').style.display = 'none';
             document.getElementById('dTreeInput').style.display = 'none';
@@ -235,12 +321,10 @@
             } else if (mode === 'visual') {
                 document.getElementById('dVisualInput').style.display = 'block';
                 initEditor();
-                // Ensure sync if JSON was modified manually in text view
                 try {
                      const jsonVal = document.getElementById('decisionTreeJson').value;
                      if (jsonVal && window.editorInstance) {
                          const tree = JSON.parse(jsonVal);
-                         // Basic check if it differs
                          if (JSON.stringify(tree) !== JSON.stringify(window.editorInstance.tree)) {
                              window.editorInstance.loadTree(tree);
                          }
@@ -255,43 +339,17 @@
             const example = {
                 "root_node_id": "start",
                 "nodes": {
-                    "start": {
-                        "id": "start",
-                        "question": "Should I change my career?",
-                        "options": [
-                            { "text": "Yes", "next_node_id": "yes_path" },
-                            { "text": "No", "next_node_id": "no_path" }
-                        ]
-                    },
-                    "yes_path": {
-                        "id": "yes_path",
-                        "question": "What field?",
-                        "options": [
-                            { "text": "Tech", "weight": 1.5 },
-                            { "text": "Art", "weight": 1.0 }
-                        ]
-                    },
-                    "no_path": {
-                        "id": "no_path",
-                        "question": "Wait for how long?",
-                        "options": [
-                            { "text": "1 Year" },
-                            { "text": "5 Years" }
-                        ]
-                    }
+                    "start": { "id": "start", "question": "Should I change my career?", "options": [{ "text": "Yes", "next_node_id": "yes_path" }, { "text": "No", "next_node_id": "no_path" }] },
+                    "yes_path": { "id": "yes_path", "question": "What field?", "options": [{ "text": "Tech", "weight": 1.5 }, { "text": "Art", "weight": 1.0 }] },
+                    "no_path": { "id": "no_path", "question": "Wait for how long?", "options": [{ "text": "1 Year" }, { "text": "5 Years" }] }
                 }
             };
-            const jsonStr = JSON.stringify(example, null, 2);
-            document.getElementById('decisionTreeJson').value = jsonStr;
-
-            // Sync with Editor if active
-            if (window.editorInstance) {
-                window.editorInstance.loadTree(example);
-            }
+            document.getElementById('decisionTreeJson').value = JSON.stringify(example, null, 2);
+            if (window.editorInstance) window.editorInstance.loadTree(example);
         }
 
         async function runDecision() {
-            const resultDiv = document.getElementById('decisionResult');
+             const resultDiv = document.getElementById('decisionResult');
             const canvasContainer = document.getElementById('decisionChartContainer');
             const canvas = document.getElementById('decisionCanvas');
 
@@ -315,17 +373,10 @@
                 }
                 payload.options = options;
             } else {
-                // Both Visual and Tree modes rely on the JSON text area being the source of truth
-                // (Visual mode syncs to it on every change)
                 try {
-                    // Ensure visual mode syncs one last time just in case
-                    if (mode === 'visual' && window.editorInstance) {
-                        window.editorInstance.syncJson();
-                    }
-
+                    if (mode === 'visual' && window.editorInstance) window.editorInstance.syncJson();
                     const jsonVal = document.getElementById('decisionTreeJson').value;
                     if (!jsonVal.trim()) {
-                         // Attempt to load default if empty
                          loadExampleTree();
                          payload.tree = JSON.parse(document.getElementById('decisionTreeJson').value);
                     } else {
@@ -359,8 +410,6 @@
                         html += `<br><span class="anomaly">ANOMALIES DETECTED:</span><br>`;
                         data.anomalies.forEach(a => html += `> ${a}<br>`);
                     }
-
-                    // Render Chart
                     if (data.time_series) {
                         canvasContainer.style.display = 'block';
                         renderChart(canvas, data.time_series, Object.keys(data.distribution));
@@ -369,16 +418,12 @@
                 } else {
                     html += `Most Probable Path (Hits: ${data.distribution?.[data.winner] || 'N/A'}):<br>`;
                     html += `<div style="color:var(--neon-green)">${data.winner}</div>`;
-
                     if (data.path_distribution) {
                         html += `<br>Top Paths:<br>`;
                         const sorted = Object.entries(data.path_distribution).sort((a,b) => b[1] - a[1]).slice(0, 10);
-                        sorted.forEach(([path, count]) => {
-                             html += `- [${count}] ${path}<br>`;
-                        });
+                        sorted.forEach(([path, count]) => { html += `- [${count}] ${path}<br>`; });
                     }
                 }
-
                 resultDiv.innerHTML = html;
             } catch (e) {
                 resultDiv.innerText = "Error: " + e.message;
@@ -389,63 +434,38 @@
             const ctx = canvas.getContext('2d');
             const w = canvas.width = canvas.parentElement.offsetWidth;
             const h = canvas.height = canvas.parentElement.offsetHeight;
-
-            ctx.fillStyle = '#111';
-            ctx.fillRect(0, 0, w, h);
-
-            // Simple line chart for each option
+            ctx.fillStyle = '#111'; ctx.fillRect(0, 0, w, h);
             const colors = ['#39ff14', '#ff00ff', '#00ffff', '#ffff00', '#ff0000'];
-
-            const steps = timeSeries.length;
-            const xStep = w / steps;
-
-            // Normalize y
             const maxVal = Math.max(...timeSeries.map(ts => Math.max(...Object.values(ts.distribution))));
-
             options.forEach((opt, idx) => {
                 ctx.strokeStyle = colors[idx % colors.length];
                 ctx.lineWidth = 2;
                 ctx.beginPath();
-
                 timeSeries.forEach((ts, i) => {
                     const count = ts.distribution[opt] || 0;
-                    const x = i * xStep;
-                    const y = h - (count / maxVal) * h * 0.9; // Scale to 90% height
-
-                    if (i === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
+                    const x = i * (w / timeSeries.length);
+                    const y = h - (count / maxVal) * h * 0.9;
+                    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
                 });
-
                 ctx.stroke();
-
-                // Legend
                 ctx.fillStyle = colors[idx % colors.length];
                 ctx.fillText(opt, 10, 20 + idx * 15);
             });
-
-            ctx.fillStyle = '#fff';
-            ctx.fillText("Time Evolution", w - 80, h - 10);
         }
-
-        // --- Existing Geo/Feng Shui Functions ---
 
         async function runGeolocation() {
             const resultDiv = document.getElementById('geoResult');
             resultDiv.innerText = "Acquiring GPS...";
-
             if (!navigator.geolocation) {
                 resultDiv.innerText = "Geolocation is not supported by this browser.";
                 return;
             }
-
             navigator.geolocation.getCurrentPosition(async (position) => {
                 const lat = position.coords.latitude;
                 const lon = position.coords.longitude;
                 const radius = parseFloat(document.getElementById('geoRadius').value);
                 const sims = parseInt(document.getElementById('geoSims').value);
-
                 resultDiv.innerText = `GPS Locked (${lat.toFixed(4)}, ${lon.toFixed(4)}). Calculating Quantum Attractor...`;
-
                 try {
                     const response = await fetch('/api/tools/geolocation', {
                         method: 'POST',
@@ -453,22 +473,14 @@
                         body: JSON.stringify({ lat, lon, radius, simulation_count: sims })
                     });
                     const data = await response.json();
-
                     if(data.error) throw new Error(data.error);
-
                     let html = `<strong style="color:var(--neon-pink)">ATTRACTOR FOUND</strong><br>`;
                     html += `Lat: ${data.lat.toFixed(6)}<br>Lon: ${data.lon.toFixed(6)}<br>`;
                     html += `Power (Density): ${data.power}<br>`;
                     html += `<a href="https://www.google.com/maps/search/?api=1&query=${data.lat},${data.lon}" target="_blank" style="color:var(--neon-blue)">Open in Maps</a>`;
-
                     resultDiv.innerHTML = html;
-                } catch (e) {
-                    resultDiv.innerText = "Error: " + e.message;
-                }
-
-            }, (err) => {
-                 resultDiv.innerText = "GPS Error: " + err.message;
-            });
+                } catch (e) { resultDiv.innerText = "Error: " + e.message; }
+            }, (err) => { resultDiv.innerText = "GPS Error: " + err.message; });
         }
 
         async function runFengShui() {
@@ -482,9 +494,11 @@
             const dayStr = document.getElementById('fsDay').value;
             const hourStr = document.getElementById('fsHour').value;
             const gender = document.getElementById('fsGender').value;
+            // Get degrees from input, which should be synced with visual if needed
+            const facingDegrees = parseFloat(document.getElementById('fsFacing').value) || 180.0;
             const quantumMode = document.getElementById('fsQuantum').checked;
 
-            const payload = { quantum_mode: quantumMode };
+            const payload = { quantum_mode: quantumMode, facing_degrees: facingDegrees };
             if (yearStr) payload.birth_year = parseInt(yearStr);
             if (monthStr) payload.birth_month = parseInt(monthStr);
             if (dayStr) payload.birth_day = parseInt(dayStr);
@@ -504,9 +518,12 @@
                 currentFengShuiData = data; // Store for download
                 downloadBtn.style.display = 'block';
 
-                let html = ``;
+                // Update Visualizer with Heatmap
+                if (data.quantum.qi_heatmap) {
+                    fsVisual.setHeatmap(data.quantum.qi_heatmap, facingDegrees);
+                }
 
-                // BaZi
+                let html = ``;
                 if (data.bazi) {
                     html += `<div style="border-bottom: 1px solid #333; margin-bottom: 10px; padding-bottom: 5px;">`;
                     html += `<strong style="color:var(--neon-blue)">BAZI PROFILE</strong><br>`;
@@ -514,8 +531,6 @@
                     html += `Pillars: ${data.bazi.year_pillar} (Y) | ${data.bazi.month_pillar} (M) | ${data.bazi.day_pillar} (D) | ${data.bazi.hour_pillar} (H)`;
                     html += `</div>`;
                 }
-
-                // Kua & Hexagram
                 if (data.kua || data.hexagram) {
                     html += `<div style="margin-bottom: 10px;">`;
                     if (data.kua) html += `Personal Kua: <strong style="color:var(--neon-green)">${data.kua.number} (${data.kua.group})</strong><br>`;
@@ -523,27 +538,11 @@
                     if (data.hexagram) html += `Hexagram: <strong>#${data.hexagram.index} ${data.hexagram.name}</strong><br><small>${data.hexagram.meaning}</small>`;
                     html += `</div>`;
                 }
-
-                // Chart Highlights
                 html += `<div><strong>Annual Chart (${data.annual_chart.label})</strong><br>`;
                 html += `Facing: ${data.annual_chart.facing_mountain} | Sitting: ${data.annual_chart.sitting_mountain}</div>`;
-
-                // Quantum Analysis
                 html += `<div style="margin-top: 15px; border-top: 1px solid #333; padding-top: 5px;">`;
                 html += `<strong style="color:var(--neon-pink)">QUANTUM ANALYSIS</strong><br>`;
                 html += `Focus Sector: ${data.quantum.focus_sector} (Vol: ${data.quantum.volatility_index.toFixed(2)})<br>`;
-
-                if (data.quantum.qi_heatmap) {
-                    html += `<br>Qi Heatmap (3x3 Grid):<br><div style="display:grid; grid-template-columns:repeat(3, 30px); gap:2px; margin:5px 0;">`;
-                    data.quantum.qi_heatmap.forEach(row => {
-                        row.forEach(val => {
-                            const intensity = Math.min(255, Math.floor(val * 50));
-                            html += `<div style="width:30px; height:30px; background:rgb(0, ${intensity}, 0); border:1px solid #444;" title="Density: ${val}"></div>`;
-                        });
-                    });
-                    html += `</div>`;
-                }
-
                 if (data.quantum.suggested_cures && data.quantum.suggested_cures.length > 0) {
                     html += `<br><u>Suggested Cures:</u><br>`;
                     data.quantum.suggested_cures.slice(0, 3).forEach(c => {
@@ -561,51 +560,26 @@
         function downloadReport() {
             if (!currentFengShuiData) return;
             const data = currentFengShuiData;
-
-            let text = "FATUM-MARK2 // FENG SHUI EXTENSIVE REPORT\n";
-            text += "========================================\n\n";
-
+            let text = "FATUM-MARK2 // FENG SHUI EXTENSIVE REPORT\n========================================\n\n";
             if (data.bazi) {
                 text += "[ BAZI FOUR PILLARS ]\n";
                 text += `Day Master: ${data.bazi.day_master}\n`;
-                text += `Year:  ${data.bazi.year_pillar}\n`;
-                text += `Month: ${data.bazi.month_pillar}\n`;
-                text += `Day:   ${data.bazi.day_pillar}\n`;
-                text += `Hour:  ${data.bazi.hour_pillar}\n\n`;
+                text += `Year:  ${data.bazi.year_pillar}\nMonth: ${data.bazi.month_pillar}\nDay:   ${data.bazi.day_pillar}\nHour:  ${data.bazi.hour_pillar}\n\n`;
             }
-
-            if (data.kua) {
-                text += `[ PERSONAL KUA ]\nNumber: ${data.kua.number} (${data.kua.group})\nElement: ${data.kua.element}\n\n`;
-            }
-
-            if (data.hexagram) {
-                text += `[ XUAN KONG DA GUA ]\nHexagram: #${data.hexagram.index} ${data.hexagram.name}\nMeaning: ${data.hexagram.meaning}\n\n`;
-            }
-
-            text += `[ ANNUAL CHART: ${data.annual_chart.label} ]\n`;
-            text += `Facing: ${data.annual_chart.facing_mountain}\nSitting: ${data.annual_chart.sitting_mountain}\n`;
-            data.annual_chart.palaces.forEach(p => {
-                text += `  - ${p.sector}: Base(${p.base_star}) Mtn(${p.mountain_star}) Wtr(${p.water_star}) Vis(${p.visiting_star})\n`;
-            });
+            if (data.kua) text += `[ PERSONAL KUA ]\nNumber: ${data.kua.number} (${data.kua.group})\nElement: ${data.kua.element}\n\n`;
+            if (data.hexagram) text += `[ XUAN KONG DA GUA ]\nHexagram: #${data.hexagram.index} ${data.hexagram.name}\nMeaning: ${data.hexagram.meaning}\n\n`;
+            text += `[ ANNUAL CHART: ${data.annual_chart.label} ]\nFacing: ${data.annual_chart.facing_mountain}\nSitting: ${data.annual_chart.sitting_mountain}\n`;
+            data.annual_chart.palaces.forEach(p => { text += `  - ${p.sector}: Base(${p.base_star}) Mtn(${p.mountain_star}) Wtr(${p.water_star}) Vis(${p.visiting_star})\n`; });
             text += "\n";
-
-            if (data.replacement_chart) {
-                text += `[ REPLACEMENT CHART DETECTED ]\nType: ${data.replacement_chart.label}\n\n`;
-            }
-
+            if (data.replacement_chart) text += `[ REPLACEMENT CHART DETECTED ]\nType: ${data.replacement_chart.label}\n\n`;
             text += "[ QUANTUM ANALYSIS ]\n";
-            text += `Focus Sector: ${data.quantum.focus_sector}\n`;
-            text += `Volatility: ${data.quantum.volatility_index}\n`;
+            text += `Focus Sector: ${data.quantum.focus_sector}\nVolatility: ${data.quantum.volatility_index}\n`;
             if (data.quantum.suggested_cures.length > 0) {
                 text += "Suggested Cures:\n";
-                data.quantum.suggested_cures.forEach(c => {
-                    text += `  * ${c.sector}: ${c.cure_name} for ${c.affliction}\n`;
-                });
+                data.quantum.suggested_cures.forEach(c => { text += `  * ${c.sector}: ${c.cure_name} for ${c.affliction}\n`; });
             }
-
             text += "\n[ GENERAL ADVICE ]\n";
             data.advice.forEach(a => text += `* ${a}\n`);
-
             const blob = new Blob([text], { type: 'text/markdown' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');

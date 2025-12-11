@@ -6,6 +6,10 @@ use rand_chacha::ChaCha20Rng;
 use rand_chacha::rand_core::{RngCore, SeedableRng};
 use rand::rngs::OsRng;
 
+/// Client for interacting with the University of Colorado Randomness Beacon (CURBy).
+///
+/// Handles fetching the latest "Pulse" from the randomness beacon and extracting
+/// the 512-bit entropy value.
 #[derive(Debug, Clone)]
 pub struct CurbyClient {
     client: Client,
@@ -83,6 +87,9 @@ impl CurbyClient {
         }
     }
 
+    /// Retrieves the Chain ID for the "CURBy-Q" quantum source.
+    ///
+    /// Caches the ID to reduce API overhead.
     async fn get_quantum_chain_id(&mut self) -> Result<String> {
         if let Some(id) = &self.chain_id_cache {
             return Ok(id.clone());
@@ -111,8 +118,12 @@ impl CurbyClient {
         anyhow::bail!("CURBy-Q chain not found");
     }
 
-    /// Fetches a seed from Quantum source, then expands it via CSPRNG (ChaCha20).
-    /// Fallback to OS RNG if network fails.
+    /// Fetches high-quality randomness.
+    ///
+    /// 1. Attempts to fetch a true quantum seed from CURBy.
+    /// 2. If successful, uses that seed to initialize a ChaCha20 CSPRNG.
+    /// 3. If the network call fails, falls back to the OS entropy source (OsRng).
+    /// 4. Generates the requested amount of random bytes.
     pub async fn fetch_bulk_randomness(&mut self, min_bytes: usize) -> Result<Vec<u8>> {
         let seed = match self.fetch_single_pulse().await {
             Ok(s) => {
@@ -127,7 +138,7 @@ impl CurbyClient {
             }
         };
 
-        // Seed must be 32 bytes for ChaCha20
+        // Seed must be exactly 32 bytes for ChaCha20
         let mut key = [0u8; 32];
         for (i, &b) in seed.iter().enumerate().take(32) {
             key[i] = b;
@@ -140,6 +151,7 @@ impl CurbyClient {
         Ok(buffer)
     }
 
+    /// Fetches the raw randomness payload from the latest valid Pulse.
     async fn fetch_single_pulse(&mut self) -> Result<Vec<u8>> {
         let chain_id = self.get_quantum_chain_id().await?;
         let latest_url = format!("{}/api/chains/{}/pulses/latest", self.base_url, chain_id);
@@ -152,7 +164,8 @@ impl CurbyClient {
 
         let mut current_round = latest_resp.data.content.payload.round;
 
-        // Try up to 5 rounds backwards to find valid randomness
+        // Try up to 5 rounds backwards to find valid randomness.
+        // Pulses have stages (e.g., "commit", "reveal"). We need one with the "randomness" payload.
         for _ in 0..5 {
             let round_url = format!("{}/api/chains/{}/pulses/{}", self.base_url, chain_id, current_round);
             let resp = self.client.get(&round_url).send().await?;
@@ -162,6 +175,7 @@ impl CurbyClient {
                      if payload.stage == "randomness" {
                          if let Some(wrapper) = payload.randomness {
                              let mut base64_string = wrapper.slash.bytes;
+                             // Pad Base64 if necessary
                              while base64_string.len() % 4 != 0 { base64_string.push('='); }
                              return Ok(BASE64_STANDARD.decode(&base64_string)?);
                          }

@@ -59,10 +59,6 @@ function renderZiWeiChart(chart) {
         2: [3,0], 1: [3,1], 0: [3,2], 11: [3,3]
     };
 
-    // Use CSS Grid for the layout?
-    // Let's build a grid container.
-    // The container should have `display: grid; grid-template-columns: repeat(4, 1fr); ...`
-    // If the container in HTML doesn't have grid style, we set it.
     container.style.display = 'grid';
     container.style.gridTemplateColumns = 'repeat(4, 1fr)';
     container.style.gridTemplateRows = 'repeat(4, 1fr)';
@@ -71,23 +67,16 @@ function renderZiWeiChart(chart) {
     container.style.maxWidth = '800px';
     container.style.margin = '0 auto';
 
-    // Create 16 cells.
-    // Fill them.
-    // We need to know which cell corresponds to which palace index.
-    // Inverse map: (r,c) -> index
-    // 0,0->5. 0,1->6...
-    // Center: (1,1), (1,2), (2,1), (2,2) are empty/merged.
-
-    // Actually, simple loop 0..15 (row by row).
     for (let r = 0; r < 4; r++) {
         for (let c = 0; c < 4; c++) {
             const cell = document.createElement('div');
-            cell.className = 'ziwei-cell'; // We'll add this class style later or inline
+            cell.className = 'ziwei-cell';
             cell.style.border = '1px solid var(--grid-line)';
             cell.style.padding = '5px';
             cell.style.minHeight = '100px';
             cell.style.position = 'relative';
             cell.style.backgroundColor = 'rgba(0,0,0,0.5)';
+            cell.style.overflow = 'hidden';
 
             // Find if this r,c maps to a palace
             let pIndex = -1;
@@ -99,13 +88,11 @@ function renderZiWeiChart(chart) {
             }
 
             if (pIndex !== -1) {
-                // Find palace data
                 const palace = chart.palaces.find(p => p.index === pIndex);
                 if (palace) {
                     renderPalaceContent(cell, palace, chart);
                 }
             } else {
-                // Center cells
                 if (r === 1 && c === 1) {
                     // Center Info
                     cell.style.gridColumn = "2 / 4";
@@ -116,7 +103,6 @@ function renderZiWeiChart(chart) {
                     cell.style.justifyContent = "center";
                     cell.innerHTML = `<h3>ZI WEI DOU SHU</h3><p>Element Phase: ${chart.element_phase}</p>`;
                 } else if ((r === 1 && c === 2) || (r === 2 && c === 1) || (r === 2 && c === 2)) {
-                    // These are covered by the 2x2 merged cell
                     continue;
                 }
             }
@@ -126,33 +112,71 @@ function renderZiWeiChart(chart) {
 }
 
 function renderPalaceContent(el, p, chart) {
-    // Palace Name (e.g. Life, Wealth)
+    // Palace Name (Top Left)
     const nameDiv = document.createElement('div');
     nameDiv.className = 'zw-palace-name';
     nameDiv.textContent = p.name;
     nameDiv.style.fontWeight = 'bold';
     nameDiv.style.color = 'var(--accent)';
     nameDiv.style.marginBottom = '5px';
-    if (p.index === chart.life_palace_idx) nameDiv.style.textDecoration = "underline";
+    nameDiv.style.fontSize = '1.0em';
+
+    if (p.index === chart.life_palace_idx) {
+        nameDiv.style.textDecoration = "underline";
+        nameDiv.style.color = "#fff";
+        nameDiv.style.backgroundColor = "var(--primary)";
+        nameDiv.style.padding = "2px 4px";
+        nameDiv.textContent = "LIFE: " + p.name;
+    }
     if (p.index === chart.body_palace_idx) nameDiv.textContent += " (Body)";
 
-    // Branch Name (Corner)
+    // Branch Name (Bottom Right)
     const branchDiv = document.createElement('div');
     branchDiv.className = 'zw-branch-label';
     branchDiv.textContent = p.branch_name;
     branchDiv.style.position = 'absolute';
     branchDiv.style.bottom = '2px';
     branchDiv.style.right = '5px';
-    branchDiv.style.fontSize = '0.8em';
-    branchDiv.style.color = '#555';
+    branchDiv.style.fontSize = '0.9em';
+    branchDiv.style.color = '#777';
+    branchDiv.style.fontWeight = 'bold';
 
-    // Stars
+    // Stars Container
     const starsDiv = document.createElement('div');
+    starsDiv.style.display = 'flex';
+    starsDiv.style.flexDirection = 'column';
+    starsDiv.style.gap = '2px';
+
+    // Major Stars
     p.major_stars.forEach(s => {
         const d = document.createElement('div');
         d.textContent = s;
         d.style.color = '#ff4081'; // Pink/Red for major stars
-        d.style.fontSize = '0.9em';
+        d.style.fontSize = '0.85em';
+        d.style.fontWeight = 'bold';
+
+        // Highlight Transformations
+        if (s.includes("(Hua Lu)")) d.style.color = "#4caf50"; // Green
+        if (s.includes("(Hua Quan)")) d.style.color = "#2196f3"; // Blue
+        if (s.includes("(Hua Ke)")) d.style.color = "#ffeb3b"; // Yellow
+        if (s.includes("(Hua Ji)")) d.style.color = "#f44336"; // Red
+
+        starsDiv.appendChild(d);
+    });
+
+    // Minor Stars
+    p.minor_stars.forEach(s => {
+        const d = document.createElement('div');
+        d.textContent = s;
+        d.style.color = '#b0bec5'; // Greyish Blue
+        d.style.fontSize = '0.75em';
+
+        // Highlight Transformations (if any applied to minors)
+        if (s.includes("(Hua Lu)")) d.style.color = "#4caf50";
+        if (s.includes("(Hua Quan)")) d.style.color = "#2196f3";
+        if (s.includes("(Hua Ke)")) d.style.color = "#ffeb3b";
+        if (s.includes("(Hua Ji)")) d.style.color = "#f44336";
+
         starsDiv.appendChild(d);
     });
 

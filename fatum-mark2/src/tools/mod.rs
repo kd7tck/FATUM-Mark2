@@ -4,6 +4,7 @@ pub mod san_he;
 pub mod qimen;
 pub mod divination;
 pub mod pdf_generator;
+pub mod zi_wei;
 pub mod ze_ri;
 pub mod chinese_meta;
 

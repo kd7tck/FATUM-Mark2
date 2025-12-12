@@ -15,6 +15,7 @@ use crate::tools::feng_shui::{FengShuiConfig, generate_report, VirtualCure};
 use crate::tools::divination::DivinationTool;
 use crate::tools::pdf_generator::generate_pdf;
 use crate::tools::ze_ri::{DateSelectionConfig, calculate_auspiciousness};
+use crate::tools::zi_wei::{ZiWeiConfig, generate_ziwei_chart};
 use crate::db::Db;
 
 #[derive(Clone)]
@@ -32,6 +33,7 @@ pub async fn start_server() {
         .route("/api/tools/fengshui/pdf", post(handle_fengshui_pdf))
         .route("/api/tools/divination", post(handle_divination))
         .route("/api/tools/zeri", post(handle_zeri))
+        .route("/api/tools/ziwei", post(handle_ziwei))
         .route("/api/profiles", get(list_profiles).post(create_profile))
         .route("/api/history", get(list_history).post(save_history))
         .fallback_service(ServeDir::new("static"))
@@ -128,6 +130,15 @@ async fn handle_zeri(
 ) -> Json<serde_json::Value> {
     match calculate_auspiciousness(payload) {
         Ok(results) => Json(serde_json::to_value(results).unwrap()),
+        Err(e) => Json(serde_json::json!({ "error": e })),
+    }
+}
+
+async fn handle_ziwei(
+    Json(payload): Json<ZiWeiConfig>,
+) -> Json<serde_json::Value> {
+    match generate_ziwei_chart(payload) {
+        Ok(chart) => Json(serde_json::to_value(chart).unwrap()),
         Err(e) => Json(serde_json::json!({ "error": e })),
     }
 }

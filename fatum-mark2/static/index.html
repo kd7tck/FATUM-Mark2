@@ -18,6 +18,7 @@
                 <button onclick="showTab('profiles')" class="nav-btn">Profiles</button>
                 <button onclick="showTab('fengshui')" class="nav-btn active">Feng Shui</button>
                 <button onclick="showTab('zeri')" class="nav-btn">Date Selection</button>
+                <button onclick="showTab('ziwei')" class="nav-btn">Zi Wei Dou Shu</button>
                 <button onclick="showTab('divination')" class="nav-btn">Divination</button>
                 <button onclick="showTab('history')" class="nav-btn">History</button>
             </nav>
@@ -138,8 +139,8 @@
                         <div><label>End Date:</label> <input type="date" id="zr-end"></div>
                     </div>
                     <div class="form-group">
-                        <label>Intention:</label>
-                        <input type="text" id="zr-intention" placeholder="Wedding, Grand Opening...">
+                        <label>Intention / Activities:</label>
+                        <input type="text" id="zr-intention" placeholder="Wedding, Travel (Comma separated)">
                     </div>
                     <div class="form-group">
                         <label class="checkbox-container">
@@ -152,6 +153,18 @@
                 </div>
                 <div id="zr-output" class="data-grid">
                     <!-- Results -->
+                </div>
+            </section>
+
+            <!-- ZI WEI DOU SHU TAB -->
+            <section id="tab-ziwei" class="tab-content" style="display:none;">
+                <h2>ZI WEI DOU SHU (PURPLE STAR)</h2>
+                <div class="panel">
+                    <p>Requires an Active Profile selected in the Feng Shui tab.</p>
+                    <button class="cyber-btn" onclick="runZiWei()">CALCULATE CHART</button>
+                </div>
+                <div id="zw-chart-container" class="chart-container">
+                    <!-- Chart Grid -->
                 </div>
             </section>
 
@@ -185,5 +198,7 @@
     </div>
 
     <script src="visual_feng_shui.js"></script>
+    <script src="visual_ze_ri.js"></script>
+    <script src="visual_zi_wei.js"></script>
 </body>
 </html>

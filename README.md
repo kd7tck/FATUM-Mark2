@@ -49,7 +49,17 @@ FATUM-MARK2 is a Rust-based backend that merges traditional Chinese Metaphysics 
 
 ### Prerequisites
 *   Rust (latest stable)
-*   SQLite
+*   SQLite (Only for Linux/macOS dynamic linking. Windows uses bundled SQLite).
+
+### Windows Support
+FATUM-MARK2 is optimized for easy compilation on Windows.
+*   **SQLite:** The project now bundles `libsqlite3`, so you **do not** need to manually install SQLite or copy `sqlite3.dll`.
+*   **TLS:** Uses native Windows SChannel for secure connections.
+
+To build on Windows, simply run:
+```powershell
+cargo run
+```
 
 ### Running the Server
 The application runs as a local web server.

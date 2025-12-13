@@ -23,3 +23,7 @@ sqlx = { version = "0.8", features = ["runtime-tokio-native-tls", "sqlite", "chr
 genpdf = "0.2"
 image = "0.24"
 font-kit = "0.13"
+
+# Bundled SQLite for easy Windows compilation
+[target.'cfg(windows)'.dependencies]
+libsqlite3-sys = { version = "0.30", features = ["bundled"] }

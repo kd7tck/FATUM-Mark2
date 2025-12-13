@@ -15,6 +15,21 @@ function showTab(tabId) {
     if (tabId === 'entropy') loadEntropyBatches();
     if (tabId === 'fengshui') updateEntropyDropdown();
     if (tabId === 'entanglement') loadEntanglementProfiles();
+    if (tabId === 'manyworlds') loadProfilesForManyWorlds();
+}
+
+async function loadProfilesForManyWorlds() {
+    const res = await fetch('/api/profiles');
+    const profiles = await res.json();
+    const select = document.getElementById('mw-profile');
+    select.innerHTML = '<option value="">-- Select Subject --</option>';
+
+    profiles.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.innerText = `${p.name} (${p.birth_year})`;
+        select.appendChild(opt);
+    });
 }
 
 // === ENTROPY ===

@@ -117,7 +117,7 @@ The following roadmap outlines the strategic evolution of FATUM-MARK2 into the u
 **Goal:** Push the boundaries of how quantum entropy models human destiny and relationships.
 *   **Real-Time Flux:** A live monitoring dashboard showing how chart auspiciousness fluctuates with real-time entropy streams.
 *   **Entropy Harvesting:** (Completed) Harvest and cache true quantum numbers for high-fidelity simulations.
-*   **Many-Worlds Simulation:** A branching probability engine that simulates thousands of "alternate timelines" for a user's luck cycle.
+*   **Many-Worlds Simulation:** (Completed) A branching probability engine that simulates thousands of "alternate timelines" for a user's luck cycle, visualizing elemental drifts over time using high-fidelity vector graphs.
 *   **Quantum Entanglement (Relationships):** (Completed) A dedicated module for Synastry and Group Dynamics with a toggle for the underlying mechanic:
     *   *Mechanism A:* Seed Hash Combination (Deterministic resonance).
     *   *Mechanism B:* Entropy Stream Correlation (Statistical resonance).

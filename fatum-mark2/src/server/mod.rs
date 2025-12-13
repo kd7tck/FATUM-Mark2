@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::client::CurbyClient;
 use crate::engine::SimulationSession;
+use crate::engine::timeline::TimelineSimulator;
 use crate::tools::feng_shui::{FengShuiConfig, generate_report, VirtualCure};
 use crate::tools::divination::DivinationTool;
 use crate::tools::pdf_generator::generate_pdf;
@@ -20,6 +21,7 @@ use crate::tools::da_liu_ren::{DaLiuRenConfig, generate_da_liu_ren};
 use crate::tools::entanglement::{EntanglementRequest, calculate_entanglement};
 use crate::db::Db;
 use crate::services::entropy;
+use std::collections::HashMap;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -39,6 +41,7 @@ pub async fn start_server() {
         .route("/api/tools/ziwei", post(handle_ziwei))
         .route("/api/tools/daliuren", post(handle_daliuren))
         .route("/api/tools/entanglement", post(handle_entanglement))
+        .route("/api/tools/many_worlds", post(handle_many_worlds))
         .route("/api/profiles", get(list_profiles).post(create_profile))
         .route("/api/history", get(list_history).post(save_history))
         .route("/api/entropy/batches", get(list_entropy_batches).post(create_entropy_batch))
@@ -187,6 +190,55 @@ async fn handle_entanglement(
     match calculate_entanglement(&payload) {
         Ok(report) => Json(serde_json::to_value(report).unwrap()),
         Err(e) => Json(serde_json::json!({ "error": e.to_string() })),
+    }
+}
+
+#[derive(Deserialize)]
+struct ManyWorldsRequest {
+    birth_year: Option<i32>,
+    duration: Option<usize>,
+    num_worlds: Option<usize>,
+}
+
+async fn handle_many_worlds(
+    Json(payload): Json<ManyWorldsRequest>,
+) -> Json<serde_json::Value> {
+    let mut client = CurbyClient::new();
+    // We need a lot of entropy for many worlds!
+    if let Ok(entropy) = client.fetch_bulk_randomness(2048).await {
+        let mut session = SimulationSession::new(entropy);
+        let mut sim = TimelineSimulator::new(&mut session);
+
+        // Simple initialization of elements based on birth year modulo
+        // In a real app, we'd use full BaZi
+        let birth_year = payload.birth_year.unwrap_or(1990);
+        let element_idx = (birth_year % 10) / 2;
+        let base_element = match element_idx {
+            0 => "Metal",
+            1 => "Water",
+            2 => "Wood",
+            3 => "Fire",
+            _ => "Earth",
+        };
+
+        let mut start_elements = HashMap::new();
+        start_elements.insert("Wood".to_string(), 20.0);
+        start_elements.insert("Fire".to_string(), 20.0);
+        start_elements.insert("Earth".to_string(), 20.0);
+        start_elements.insert("Metal".to_string(), 20.0);
+        start_elements.insert("Water".to_string(), 20.0);
+
+        if let Some(v) = start_elements.get_mut(base_element) {
+            *v += 30.0; // Boost birth element
+        }
+
+        let duration = payload.duration.unwrap_or(10);
+        let num_worlds = payload.num_worlds.unwrap_or(100);
+
+        let result = sim.simulate(start_elements, duration, num_worlds);
+        Json(serde_json::to_value(result).unwrap())
+    } else {
+        Json(serde_json::json!({ "error": "Failed to fetch entropy for simulation" }))
     }
 }
 

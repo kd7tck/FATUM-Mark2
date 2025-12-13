@@ -2,7 +2,7 @@
 
 **Quantum-Powered Metaphysical Engine**
 
-FATUM-MARK2 is a Rust-based backend that merges traditional Chinese Metaphysics (Feng Shui, BaZi, Qi Men Dun Jia, I Ching) with true quantum entropy. It utilizes the **University of Colorado Randomness Beacon (CURBy)** to seed high-performance ChaCha20 simulations, searching for statistical anomalies in quantum noise to drive divination and decision-making results.
+FATUM-MARK2 is a Rust-based backend that merges traditional Chinese Metaphysics (Feng Shui, BaZi, Qi Men Dun Jia, I Ching) with true quantum entropy. It utilizes the **University of Colorado Randomness Beacon (CURBy)** to seed high-performance simulations, searching for statistical anomalies in quantum noise to drive divination and decision-making results.
 
 > **Note:** This system is designed for entertainment and experimental purposes. It explores the intersection of quantum mechanics and ancient divination algorithms.
 
@@ -10,7 +10,11 @@ FATUM-MARK2 is a Rust-based backend that merges traditional Chinese Metaphysics 
 
 ### 1. Quantum Entropy Engine
 *   **Source:** Fetches true random pulses from the CURBy beacon (`https://random.colorado.edu`).
-*   **Simulation:** Seeds a ChaCha20 CSPRNG to run millions of reproducible simulations per request.
+*   **Harvesting & Caching:** Allows users to "harvest" raw quantum entropy into named SQLite batches over time. This creates a high-quality pool of true random numbers for critical simulations.
+*   **Simulation Modes:**
+    *   **Live Stream:** Fetches entropy on-demand for immediate results.
+    *   **Cached Batch:** Consumes a specific pre-harvested batch (e.g., "Full Moon Meditation") to drive the simulation.
+    *   **Hybrid Fallback:** Gracefully falls back to a ChaCha20 CSPRNG seeded with available quantum data if the cache runs dry.
 *   **Anomaly Detection:** Calculates Z-scores to identify outcomes that deviate significantly from expected probability distributions.
 
 ### 2. Traditional Feng Shui (Xuan Kong Flying Stars)
@@ -41,9 +45,10 @@ FATUM-MARK2 is a Rust-based backend that merges traditional Chinese Metaphysics 
 ## Architecture
 
 *   **Backend:** Rust (Axum, Tokio, Reqwest)
-*   **Frontend:** HTML5/CSS3 (Cyberpunk aesthetic), Vanilla JS
-*   **Persistence:** SQLite (SQLx) for user history and profiles.
-*   **Math:** `rand_chacha` for simulations, `genpdf` for report generation.
+*   **Services:** dedicated `entropy` service for background harvesting.
+*   **Frontend:** HTML5/CSS3 (Cyberpunk aesthetic), Vanilla JS, SVG-based visualization.
+*   **Persistence:** SQLite (SQLx) for user history, profiles, and **Quantum Entropy Batches**.
+*   **Math:** `rand_chacha` for simulations (fallback), `genpdf` for report generation.
 
 ## Installation & Usage
 
@@ -77,7 +82,7 @@ Once running, open your browser to `http://127.0.0.1:3000`.
 
 ### Development
 *   **Frontend:** The frontend assets are located in `static/`.
-*   **Backend:** Core logic is in `src/tools/` (Feng Shui logic) and `src/engine/` (Simulation).
+*   **Backend:** Core logic is in `src/tools/`, `src/engine/`, and `src/services/`.
 
 ## License
 MIT License
@@ -105,6 +110,7 @@ The following roadmap outlines the strategic evolution of FATUM-MARK2 into the u
 ### Phase 3: Quantum Depth & Entanglement
 **Goal:** Push the boundaries of how quantum entropy models human destiny and relationships.
 *   **Real-Time Flux:** A live monitoring dashboard showing how chart auspiciousness fluctuates with real-time entropy streams.
+*   **Entropy Harvesting:** (Completed) Harvest and cache true quantum numbers for high-fidelity simulations.
 *   **Many-Worlds Simulation:** A branching probability engine that simulates thousands of "alternate timelines" for a user's luck cycle.
 *   **Quantum Entanglement (Relationships):** A dedicated module for Synastry and Group Dynamics with a toggle for the underlying mechanic:
     *   *Mechanism A:* Seed Hash Combination (Deterministic resonance).

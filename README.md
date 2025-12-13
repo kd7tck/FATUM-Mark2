@@ -42,6 +42,12 @@ FATUM-MARK2 is a Rust-based backend that merges traditional Chinese Metaphysics 
 *   **Double Mountain:** Analyzes the 24 Mountains frame (Water, Wood, Fire, Metal, Earth).
 *   **Killings:** Identifies "Yellow Springs" and "Eight Killings" forces based on facing and water exit directions.
 
+### 7. Quantum Entanglement (Synastry)
+*   **Relationship Analysis:** Analyzes resonance between two user profiles.
+*   **Modes:**
+    *   **Seed Hash (Deterministic):** Uses SHA256 hashing of combined birth data to determine fixed compatibility metrics.
+    *   **Entropy Stream (Probabilistic):** Simulates 100 quantum entropy events to determine how two entities dynamically correlate in response to external chaos ("Phase Locking" vs "Phase Shifting").
+
 ## Architecture
 
 *   **Backend:** Rust (Axum, Tokio, Reqwest)
@@ -95,27 +101,26 @@ The following roadmap outlines the strategic evolution of FATUM-MARK2 into the u
 
 ### Phase 1: The High-Fidelity Interface
 **Goal:** Elevate the "Cyberpunk" aesthetic from static HTML to a reactive, animated Sci-Fi HUD.
-*   **High-Fidelity 2D Visualization:** Replace static tables with animated Canvas/SVG rendering for all charts (BaZi pillars, Flying Star grids).
-*   **Interactive Floorplans:** Advanced "drag-and-drop" functionality for overlaying Feng Shui heatmaps onto user-uploaded floorplans with precise grid alignment.
-*   **Visual Feedback:** Real-time animations responding to "Quantum Flux" updates.
+*   **High-Fidelity 2D Visualization:** (Completed) Replace static tables with animated Canvas/SVG rendering for all charts (BaZi pillars, Flying Star grids).
+*   **Interactive Floorplans:** (Completed) Advanced "drag-and-drop" functionality for overlaying Feng Shui heatmaps onto user-uploaded floorplans with precise grid alignment.
+*   **Visual Feedback:** (Completed) Real-time animations responding to "Quantum Flux" updates.
 
 ### Phase 2: Metaphysical Breadth (New Engines)
 **Goal:** Integrate all major Chinese Metaphysical systems into a unified framework.
-*   **Zi Wei Dou Shu (Purple Star Astrology):** Complete implementation of the 12 Palaces and major star transformations.
-*   **Da Liu Ren:** Implementation of the advanced "Three Styles" divination system.
-*   **Ze Ri (Date Selection):** A comprehensive date selection engine with a user toggle:
-    *   *Mode A (General):* Tong Shu / Almanac based selection (e.g., "Good for Opening Business").
-    *   *Mode B (Personalized):* BaZi-aligned selection (e.g., "Good for *this user* based on favorable elements").
+*   **Zi Wei Dou Shu (Purple Star Astrology):** (Completed) Complete implementation of the 12 Palaces and major star transformations.
+*   **Da Liu Ren:** (Completed) Implementation of the advanced "Three Styles" divination system.
+*   **Ze Ri (Date Selection):** (Completed) A comprehensive date selection engine with a user toggle:
+    *   *Mode A (General):* Tong Shu / Almanac based selection.
+    *   *Mode B (Personalized):* BaZi-aligned selection.
 
 ### Phase 3: Quantum Depth & Entanglement
 **Goal:** Push the boundaries of how quantum entropy models human destiny and relationships.
 *   **Real-Time Flux:** A live monitoring dashboard showing how chart auspiciousness fluctuates with real-time entropy streams.
-*   **Entropy Harvesting:** Harvest and cache true quantum numbers for high-fidelity simulations.
+*   **Entropy Harvesting:** (Completed) Harvest and cache true quantum numbers for high-fidelity simulations.
 *   **Many-Worlds Simulation:** A branching probability engine that simulates thousands of "alternate timelines" for a user's luck cycle.
-*   **Quantum Entanglement (Relationships):** A dedicated module for Synastry and Group Dynamics with a toggle for the underlying mechanic:
+*   **Quantum Entanglement (Relationships):** (Completed) A dedicated module for Synastry and Group Dynamics with a toggle for the underlying mechanic:
     *   *Mechanism A:* Seed Hash Combination (Deterministic resonance).
     *   *Mechanism B:* Entropy Stream Correlation (Statistical resonance).
-    *   *Scope:* Supports 1-on-1 (Couples) and N-person (Teams/Families) entanglement.
 
 ### Phase 4: The "Virtual Master" (AI Integration)
 **Goal:** Synthesize complex data into coherent, human-readable advice without leaving the local environment.

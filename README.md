@@ -122,8 +122,13 @@ The following roadmap outlines the strategic evolution of FATUM-MARK2 into the u
     *   *Mechanism A:* Seed Hash Combination (Deterministic resonance).
     *   *Mechanism B:* Entropy Stream Correlation (Statistical resonance).
 
-### Phase 4: The "Virtual Master" (AI Integration)
-**Goal:** Synthesize complex data into coherent, human-readable advice without leaving the local environment.
+### Phase 3.5: Make User Interface Easy To Use
+**Goal:** Go through every GUI based interface and figure out how to make it easier to understand and interoperable with each other or indipendent from eachother, depending on what the user chooses to do with it.
+*   **Mouse Over Hints:** Simple mouse over hints.
+*   **Restructure:** Over all restructuring of GUI to enhance its ease of use.
+
+### Phase 4: The Optional "Virtual Master" (AI Integration)
+**Goal:** Synthesize complex data into coherent, human-readable advice without leaving the local environment. Requires AI-API keys and is compatible with multiple types of AI. This system is optional and can be toggled on or off.
 *   **Hybrid AI Architecture:** A toggle-based system allowing users to choose their privacy level and hardware commitment.
     *   *Local Mode:* Integration with local inference engines (Ollama, Llama.cpp) for 100% private, offline readings.
     *   *Cloud Mode:* Optional connector for commercial APIs (OpenAI, Anthropic) for higher fidelity interpretation on lower-end hardware.

@@ -3,6 +3,37 @@ let currentReport = null;
 let currentHexagram = null;
 let floorplanImage = null;
 
+// INIT
+document.addEventListener("DOMContentLoaded", () => {
+    initTooltips();
+});
+
+function initTooltips() {
+    const box = document.getElementById('tooltip-box');
+
+    document.body.addEventListener('mouseover', (e) => {
+        if (e.target.dataset && e.target.dataset.tooltip) {
+            box.innerText = e.target.dataset.tooltip;
+            box.style.display = 'block';
+            box.style.left = (e.pageX + 15) + 'px';
+            box.style.top = (e.pageY + 15) + 'px';
+        }
+    });
+
+    document.body.addEventListener('mousemove', (e) => {
+        if (box.style.display === 'block') {
+            box.style.left = (e.pageX + 15) + 'px';
+            box.style.top = (e.pageY + 15) + 'px';
+        }
+    });
+
+    document.body.addEventListener('mouseout', (e) => {
+        if (e.target.dataset && e.target.dataset.tooltip) {
+            box.style.display = 'none';
+        }
+    });
+}
+
 // TABS
 function showTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');

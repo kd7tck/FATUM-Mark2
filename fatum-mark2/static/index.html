@@ -11,20 +11,42 @@
     <div class="scanlines"></div>
     <div class="glow-overlay"></div>
 
+    <!-- Tooltip Container -->
+    <div id="tooltip-box" class="tooltip-box" style="display:none;"></div>
+
     <div id="app">
         <header>
             <h1>FATUM MARK 2 <span class="blink">_ONLINE</span></h1>
-            <nav>
-                <button onclick="showTab('profiles')" class="nav-btn">Profiles</button>
-                <button onclick="showTab('fengshui')" class="nav-btn active">Feng Shui</button>
-                <button onclick="showTab('entropy')" class="nav-btn">Quantum Flux</button>
-                <button onclick="showTab('zeri')" class="nav-btn">Date Selection</button>
-                <button onclick="showTab('ziwei')" class="nav-btn">Zi Wei Dou Shu</button>
-                <button onclick="showTab('daliuren')" class="nav-btn">Da Liu Ren</button>
-                <button onclick="showTab('entanglement')" class="nav-btn">Entanglement</button>
-                <button onclick="showTab('manyworlds')" class="nav-btn">Many Worlds</button>
-                <button onclick="showTab('divination')" class="nav-btn">Divination</button>
-                <button onclick="showTab('history')" class="nav-btn">History</button>
+            <nav id="main-nav">
+                <div class="nav-group">
+                    <span class="nav-label">IDENTITY</span>
+                    <button onclick="showTab('profiles')" class="nav-btn" data-tooltip="Manage User Profiles and Birth Data">Profiles</button>
+                </div>
+
+                <div class="nav-group">
+                    <span class="nav-label">CORE TOOLS</span>
+                    <button onclick="showTab('fengshui')" class="nav-btn active" data-tooltip="Flying Stars, BaZi, and Floorplan Analysis">Feng Shui</button>
+                    <button onclick="showTab('zeri')" class="nav-btn" data-tooltip="Quantum Date Selection">Date Selection</button>
+                    <button onclick="showTab('divination')" class="nav-btn" data-tooltip="I Ching Divination with Quantum Coins">Divination</button>
+                </div>
+
+                <div class="nav-group">
+                    <span class="nav-label">ADVANCED</span>
+                    <button onclick="showTab('ziwei')" class="nav-btn" data-tooltip="Purple Star Astrology">Zi Wei Dou Shu</button>
+                    <button onclick="showTab('daliuren')" class="nav-btn" data-tooltip="The Three Styles: Da Liu Ren">Da Liu Ren</button>
+                </div>
+
+                <div class="nav-group">
+                    <span class="nav-label">QUANTUM</span>
+                    <button onclick="showTab('entropy')" class="nav-btn" data-tooltip="Manage Entropy Batches and Harvesting">Flux</button>
+                    <button onclick="showTab('entanglement')" class="nav-btn" data-tooltip="Synastry and Relationship Resonance">Entanglement</button>
+                    <button onclick="showTab('manyworlds')" class="nav-btn" data-tooltip="Simulate Alternate Timelines">Many Worlds</button>
+                </div>
+
+                <div class="nav-group">
+                    <span class="nav-label">SYSTEM</span>
+                    <button onclick="showTab('history')" class="nav-btn" data-tooltip="View Past Analysis Records">History</button>
+                </div>
             </nav>
         </header>
 
@@ -34,7 +56,7 @@
                 <h2>USER PROFILES</h2>
                 <div class="panel">
                     <div class="form-group">
-                        <label>Name:</label> <input type="text" id="p-name">
+                        <label>Name:</label> <input type="text" id="p-name" data-tooltip="Enter the name of the entity">
                     </div>
                     <div class="form-row">
                         <div><label>Year:</label> <input type="number" id="p-year" value="1990"></div>
@@ -63,7 +85,7 @@
                     <p>Harvest true random entropy from the CURBy beacon and cache it for high-fidelity simulations.</p>
                     <div class="form-group">
                          <label>New Batch Name:</label>
-                         <input type="text" id="entropy-batch-name" placeholder="E.g. Full Moon Meditation">
+                         <input type="text" id="entropy-batch-name" placeholder="E.g. Full Moon Meditation" data-tooltip="Name this entropy collection for later reference">
                          <button class="cyber-btn small" onclick="createEntropyBatch()">CREATE BATCH</button>
                     </div>
                     <hr>
@@ -82,77 +104,96 @@
             <!-- FENG SHUI TAB -->
             <section id="tab-fengshui" class="tab-content">
                 <div class="sidebar">
-                    <h3>PARAMETERS</h3>
-                    <div class="form-group">
-                        <label>Active Profile:</label>
-                        <select id="fs-profile-select" onchange="loadProfileIntoForm()">
-                            <option value="">-- Manual Input --</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Construction Year:</label>
-                        <input type="number" id="fs-year" value="2004">
-                    </div>
-                    <div class="form-group">
-                        <label>Facing (Deg):</label>
-                        <input type="number" id="fs-facing" value="180">
-                    </div>
-                    <div class="form-group">
-                        <label>Intention:</label>
-                        <input type="text" id="fs-intention" placeholder="Wealth, Health...">
-                    </div>
-                    <div class="form-group">
-                        <label>Entropy Source:</label>
-                        <select id="fs-entropy-source">
-                            <option value="">Live Quantum Stream (Default)</option>
-                            <!-- Populated dynamically -->
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="checkbox-container">
-                            <input type="checkbox" id="fs-quantum">
-                            <span class="checkmark"></span>
-                            Quantum Mode
-                        </label>
-                    </div>
+
+                    <details open>
+                        <summary>MAIN PARAMETERS</summary>
+                        <div class="details-content">
+                            <div class="form-group">
+                                <label>Active Profile:</label>
+                                <select id="fs-profile-select" onchange="loadProfileIntoForm()" data-tooltip="Select a profile to include BaZi analysis">
+                                    <option value="">-- Manual Input --</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Construction Year:</label>
+                                <input type="number" id="fs-year" value="2004" data-tooltip="Year the building was completed (determines Period)">
+                            </div>
+                            <div class="form-group">
+                                <label>Facing (Deg):</label>
+                                <input type="number" id="fs-facing" value="180" data-tooltip="Compass degree the building faces (0-360)">
+                            </div>
+                            <div class="form-group">
+                                <label>Intention:</label>
+                                <input type="text" id="fs-intention" placeholder="Wealth, Health..." data-tooltip="Focus of the analysis">
+                            </div>
+                        </div>
+                    </details>
+
+                    <details>
+                        <summary>QUANTUM CONFIGURATION</summary>
+                        <div class="details-content">
+                            <div class="form-group">
+                                <label>Entropy Source:</label>
+                                <select id="fs-entropy-source" data-tooltip="Choose between Live Stream or Pre-Recorded Entropy">
+                                    <option value="">Live Quantum Stream (Default)</option>
+                                    <!-- Populated dynamically -->
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="checkbox-container">
+                                    <input type="checkbox" id="fs-quantum" data-tooltip="Enable probabilistic chart variations">
+                                    <span class="checkmark"></span>
+                                    Quantum Mode
+                                </label>
+                            </div>
+                        </div>
+                    </details>
+
                     <button class="cyber-btn" onclick="runFengShui()">INITIATE SEQUENCE</button>
                     <button class="cyber-btn secondary" onclick="saveReport('fengshui')">ARCHIVE RESULT</button>
                     <button class="cyber-btn secondary" onclick="downloadPdf()">DOWNLOAD PDF</button>
 
-                    <hr>
-                    <div id="virtual-cures-panel">
-                        <h4>VIRTUAL CURES</h4>
-                        <div class="cure-palette">
-                            <div class="cure-item" draggable="true" ondragstart="drag(event)" data-type="Metal">Metal</div>
-                            <div class="cure-item" draggable="true" ondragstart="drag(event)" data-type="Water">Water</div>
-                            <div class="cure-item" draggable="true" ondragstart="drag(event)" data-type="Wood">Wood</div>
-                            <div class="cure-item" draggable="true" ondragstart="drag(event)" data-type="Fire">Fire</div>
-                            <div class="cure-item" draggable="true" ondragstart="drag(event)" data-type="Earth">Earth</div>
+                    <details>
+                        <summary>VIRTUAL CURES</summary>
+                        <div class="details-content">
+                            <div id="virtual-cures-panel">
+                                <p class="small-text">Drag elements onto the chart to simulate cures.</p>
+                                <div class="cure-palette">
+                                    <div class="cure-item" draggable="true" ondragstart="drag(event)" data-type="Metal" style="border-color:var(--metal); color:var(--metal)">Metal</div>
+                                    <div class="cure-item" draggable="true" ondragstart="drag(event)" data-type="Water" style="border-color:var(--water); color:var(--water)">Water</div>
+                                    <div class="cure-item" draggable="true" ondragstart="drag(event)" data-type="Wood" style="border-color:var(--wood); color:var(--wood)">Wood</div>
+                                    <div class="cure-item" draggable="true" ondragstart="drag(event)" data-type="Fire" style="border-color:var(--fire); color:var(--fire)">Fire</div>
+                                    <div class="cure-item" draggable="true" ondragstart="drag(event)" data-type="Earth" style="border-color:var(--earth); color:var(--earth)">Earth</div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    </details>
 
-                    <hr>
-                    <h3>FLOORPLAN</h3>
-                    <div class="form-group">
-                        <label>Upload Image:</label>
-                        <input type="file" id="fs-floorplan-upload" accept="image/*">
-                    </div>
-                    <div class="form-group">
-                        <label>Grid X:</label>
-                        <input type="range" id="fs-grid-x" min="-300" max="300" value="0" oninput="updateGridTransform()">
-                    </div>
-                    <div class="form-group">
-                        <label>Grid Y:</label>
-                        <input type="range" id="fs-grid-y" min="-300" max="300" value="0" oninput="updateGridTransform()">
-                    </div>
-                    <div class="form-group">
-                        <label>Grid Scale:</label>
-                        <input type="range" id="fs-grid-scale" min="0.1" max="2.0" step="0.1" value="1.0" oninput="updateGridTransform()">
-                    </div>
-                    <div class="form-group">
-                        <label>Grid Opacity:</label>
-                        <input type="range" id="fs-grid-opacity" min="0.1" max="1.0" step="0.1" value="0.8" oninput="updateGridTransform()">
-                    </div>
+                    <details>
+                        <summary>FLOORPLAN & GRID</summary>
+                        <div class="details-content">
+                            <div class="form-group">
+                                <label>Upload Image:</label>
+                                <input type="file" id="fs-floorplan-upload" accept="image/*" data-tooltip="Upload a floorplan image to overlay">
+                            </div>
+                            <div class="form-group">
+                                <label>Grid X:</label>
+                                <input type="range" id="fs-grid-x" min="-300" max="300" value="0" oninput="updateGridTransform()">
+                            </div>
+                            <div class="form-group">
+                                <label>Grid Y:</label>
+                                <input type="range" id="fs-grid-y" min="-300" max="300" value="0" oninput="updateGridTransform()">
+                            </div>
+                            <div class="form-group">
+                                <label>Grid Scale:</label>
+                                <input type="range" id="fs-grid-scale" min="0.1" max="2.0" step="0.1" value="1.0" oninput="updateGridTransform()">
+                            </div>
+                            <div class="form-group">
+                                <label>Grid Opacity:</label>
+                                <input type="range" id="fs-grid-opacity" min="0.1" max="1.0" step="0.1" value="0.8" oninput="updateGridTransform()">
+                            </div>
+                        </div>
+                    </details>
                 </div>
 
                 <div class="viewport">

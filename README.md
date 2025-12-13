@@ -124,8 +124,8 @@ The following roadmap outlines the strategic evolution of FATUM-MARK2 into the u
 
 ### Phase 3.5: Make User Interface Easy To Use
 **Goal:** Go through every GUI based interface and figure out how to make it easier to understand and interoperable with each other or indipendent from eachother, depending on what the user chooses to do with it.
-*   **Mouse Over Hints:** Simple mouse over hints.
-*   **Restructure:** Over all restructuring of GUI to enhance its ease of use.
+*   **Mouse Over Hints:** (Completed) Integrated system-wide tooltips explaining every parameter and button.
+*   **Restructure:** (Completed) Grouped navigation into logical categories (Identity, Core, Advanced, Quantum, System) and reorganized the Feng Shui sidebar with collapsible sections for better usability.
 
 ### Phase 4: The Optional "Virtual Master" (AI Integration)
 **Goal:** Synthesize complex data into coherent, human-readable advice without leaving the local environment. Requires AI-API keys and is compatible with multiple types of AI. This system is optional and can be toggled on or off.

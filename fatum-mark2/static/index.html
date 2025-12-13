@@ -21,6 +21,7 @@
                 <button onclick="showTab('zeri')" class="nav-btn">Date Selection</button>
                 <button onclick="showTab('ziwei')" class="nav-btn">Zi Wei Dou Shu</button>
                 <button onclick="showTab('daliuren')" class="nav-btn">Da Liu Ren</button>
+                <button onclick="showTab('entanglement')" class="nav-btn">Entanglement</button>
                 <button onclick="showTab('divination')" class="nav-btn">Divination</button>
                 <button onclick="showTab('history')" class="nav-btn">History</button>
             </nav>
@@ -214,6 +215,32 @@
                     <button class="cyber-btn" onclick="runDaLiuRen()">CALCULATE PLATE</button>
                 </div>
                 <div id="dlr-output" class="console-output"></div>
+            </section>
+
+            <!-- ENTANGLEMENT TAB -->
+            <section id="tab-entanglement" class="tab-content" style="display:none;">
+                <h2>QUANTUM ENTANGLEMENT (SYNASTRY)</h2>
+                <div class="panel">
+                    <div class="form-group">
+                        <label>Profile A (The Subject):</label>
+                        <select id="ent-profile1"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Profile B (The Object):</label>
+                        <select id="ent-profile2"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Entanglement Mode:</label>
+                        <select id="ent-mode">
+                            <option value="SeedHash">Seed Hash (Deterministic Resonance)</option>
+                            <option value="EntropyStream">Entropy Stream (Quantum Correlation)</option>
+                        </select>
+                    </div>
+                    <button class="cyber-btn" onclick="runEntanglement()">ANALYZE RESONANCE</button>
+                </div>
+                <div id="ent-output" class="console-output large-text">
+                    <!-- Output -->
+                </div>
             </section>
 
             <!-- DIVINATION TAB -->

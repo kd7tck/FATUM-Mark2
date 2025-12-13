@@ -8,6 +8,7 @@ pub mod zi_wei;
 pub mod ze_ri;
 pub mod da_liu_ren;
 pub mod chinese_meta;
+pub mod entanglement;
 
 #[cfg(test)]
 mod feng_shui_tests;

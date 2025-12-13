@@ -17,6 +17,7 @@ use crate::tools::pdf_generator::generate_pdf;
 use crate::tools::ze_ri::{DateSelectionConfig, calculate_auspiciousness};
 use crate::tools::zi_wei::{ZiWeiConfig, generate_ziwei_chart};
 use crate::tools::da_liu_ren::{DaLiuRenConfig, generate_da_liu_ren};
+use crate::tools::entanglement::{EntanglementRequest, calculate_entanglement};
 use crate::db::Db;
 use crate::services::entropy;
 
@@ -37,6 +38,7 @@ pub async fn start_server() {
         .route("/api/tools/zeri", post(handle_zeri))
         .route("/api/tools/ziwei", post(handle_ziwei))
         .route("/api/tools/daliuren", post(handle_daliuren))
+        .route("/api/tools/entanglement", post(handle_entanglement))
         .route("/api/profiles", get(list_profiles).post(create_profile))
         .route("/api/history", get(list_history).post(save_history))
         .route("/api/entropy/batches", get(list_entropy_batches).post(create_entropy_batch))
@@ -176,6 +178,15 @@ async fn handle_divination() -> Json<serde_json::Value> {
         }
     } else {
         Json(serde_json::json!({ "error": "Failed to fetch entropy" }))
+    }
+}
+
+async fn handle_entanglement(
+    Json(payload): Json<EntanglementRequest>,
+) -> Json<serde_json::Value> {
+    match calculate_entanglement(&payload) {
+        Ok(report) => Json(serde_json::to_value(report).unwrap()),
+        Err(e) => Json(serde_json::json!({ "error": e.to_string() })),
     }
 }
 

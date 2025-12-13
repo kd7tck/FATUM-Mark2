@@ -14,6 +14,7 @@ function showTab(tabId) {
     if (tabId === 'history') loadHistory();
     if (tabId === 'entropy') loadEntropyBatches();
     if (tabId === 'fengshui') updateEntropyDropdown();
+    if (tabId === 'entanglement') loadEntanglementProfiles();
 }
 
 // === ENTROPY ===
@@ -149,6 +150,79 @@ async function loadProfiles() {
         opt.textContent = p.name;
         select.appendChild(opt);
     });
+}
+
+async function loadEntanglementProfiles() {
+    const res = await fetch('/api/profiles');
+    const profiles = await res.json();
+    const sel1 = document.getElementById('ent-profile1');
+    const sel2 = document.getElementById('ent-profile2');
+
+    sel1.innerHTML = '';
+    sel2.innerHTML = '';
+
+    profiles.forEach(p => {
+        const val = JSON.stringify(p);
+        const opt1 = document.createElement('option');
+        opt1.value = val;
+        opt1.textContent = p.name;
+        sel1.appendChild(opt1);
+
+        const opt2 = document.createElement('option');
+        opt2.value = val;
+        opt2.textContent = p.name;
+        sel2.appendChild(opt2);
+    });
+}
+
+async function runEntanglement() {
+    const p1 = document.getElementById('ent-profile1').value;
+    const p2 = document.getElementById('ent-profile2').value;
+    const mode = document.getElementById('ent-mode').value;
+
+    if (!p1 || !p2) {
+        alert("Select two profiles.");
+        return;
+    }
+
+    // Pass the raw JSON string as "data". The backend will hash it.
+    const req = {
+        profile1_data: p1,
+        profile2_data: p2,
+        mode: mode
+    };
+
+    const res = await fetch('/api/tools/entanglement', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req)
+    });
+
+    const report = await res.json();
+    renderEntanglementReport(report);
+}
+
+function renderEntanglementReport(report) {
+    const out = document.getElementById('ent-output');
+
+    let color = "var(--primary)";
+    if (report.resonance_score > 80) color = "var(--accent)";
+    else if (report.resonance_score < 40) color = "var(--fire)";
+
+    let html = `<h3 style="color:${color}">RESONANCE SCORE: ${report.resonance_score.toFixed(1)}%</h3>`;
+    html += `<p>${report.narrative}</p>`;
+
+    html += `<ul>`;
+    report.compatibility_factors.forEach(f => {
+        html += `<li>${f}</li>`;
+    });
+    html += `</ul>`;
+
+    if (report.shared_hexagram) {
+        html += `<p style="margin-top:20px;"><strong>Shared Hexagram:</strong> ${report.shared_hexagram}</p>`;
+    }
+
+    out.innerHTML = html;
 }
 
 function loadProfileIntoForm() {

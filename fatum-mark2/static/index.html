@@ -17,6 +17,7 @@
             <nav>
                 <button onclick="showTab('profiles')" class="nav-btn">Profiles</button>
                 <button onclick="showTab('fengshui')" class="nav-btn active">Feng Shui</button>
+                <button onclick="showTab('entropy')" class="nav-btn">Quantum Flux</button>
                 <button onclick="showTab('zeri')" class="nav-btn">Date Selection</button>
                 <button onclick="showTab('ziwei')" class="nav-btn">Zi Wei Dou Shu</button>
                 <button onclick="showTab('daliuren')" class="nav-btn">Da Liu Ren</button>
@@ -53,6 +54,29 @@
                 </div>
             </section>
 
+            <!-- QUANTUM FLUX TAB -->
+            <section id="tab-entropy" class="tab-content" style="display:none;">
+                <h2>QUANTUM ENTROPY HARVESTING</h2>
+                <div class="panel">
+                    <p>Harvest true random entropy from the CURBy beacon and cache it for high-fidelity simulations.</p>
+                    <div class="form-group">
+                         <label>New Batch Name:</label>
+                         <input type="text" id="entropy-batch-name" placeholder="E.g. Full Moon Meditation">
+                         <button class="cyber-btn small" onclick="createEntropyBatch()">CREATE BATCH</button>
+                    </div>
+                    <hr>
+                    <div id="active-harvest-panel" style="display:none;">
+                         <h3 style="color:var(--accent);">HARVEST IN PROGRESS</h3>
+                         <p>Batch ID: <span id="harvest-batch-id">-</span></p>
+                         <button class="cyber-btn warning" onclick="stopHarvest()">STOP HARVEST</button>
+                    </div>
+                </div>
+                <button class="cyber-btn secondary" onclick="loadEntropyBatches()">REFRESH LIST</button>
+                <div id="entropy-batch-list" class="data-grid">
+                    <!-- Batches -->
+                </div>
+            </section>
+
             <!-- FENG SHUI TAB -->
             <section id="tab-fengshui" class="tab-content">
                 <div class="sidebar">
@@ -74,6 +98,13 @@
                     <div class="form-group">
                         <label>Intention:</label>
                         <input type="text" id="fs-intention" placeholder="Wealth, Health...">
+                    </div>
+                    <div class="form-group">
+                        <label>Entropy Source:</label>
+                        <select id="fs-entropy-source">
+                            <option value="">Live Quantum Stream (Default)</option>
+                            <!-- Populated dynamically -->
+                        </select>
                     </div>
                     <div class="form-group">
                         <label class="checkbox-container">
@@ -217,5 +248,11 @@
     <script src="visual_feng_shui.js"></script>
     <script src="visual_zi_wei.js"></script>
     <script src="visual_da_liu_ren.js"></script>
+    <script>
+        // Additional Logic for Entropy Tab
+        // Merging this into visual_feng_shui.js would be cleaner, but I can inline here or append.
+        // Let's modify visual_feng_shui.js via replacement or just append logic there.
+        // I'll append to visual_feng_shui.js in next step.
+    </script>
 </body>
 </html>

@@ -7,6 +7,9 @@ use crate::tools::astronomy::get_solar_term;
 use crate::tools::san_he::{analyze_san_he, SanHeAnalysis};
 use crate::tools::qimen::{calculate_qimen, QiMenChart};
 use crate::tools::chinese_meta::{get_stem, get_branch};
+use std::sync::Arc;
+use crate::db::Db;
+use hex;
 
 /// Configuration for a Feng Shui analysis session.
 ///
@@ -40,6 +43,8 @@ pub struct FengShuiConfig {
     pub quantum_mode: bool,
     /// List of user-placed cures on the virtual grid.
     pub virtual_cures: Option<Vec<VirtualCure>>,
+    /// ID of the entropy batch to use for simulation. If None, falls back to legacy/live mode.
+    pub entropy_batch_id: Option<i64>,
 }
 
 /// Represents a "Virtual Cure" placed on the frontend grid.
@@ -168,11 +173,34 @@ pub async fn run_feng_shui_cli() -> Result<()> {
 /// 2. Calculates Traditional Charts (BaZi, Kua, Flying Stars).
 /// 3. Injects Quantum Entropy for mutations and probabilistic analysis.
 /// 4. Aggregates results into a comprehensive report.
-pub async fn generate_report(config: FengShuiConfig) -> Result<FengShuiReport> {
+pub async fn generate_report(config: FengShuiConfig, db: Option<Arc<Db>>) -> Result<FengShuiReport> {
     // 1. Initialize Quantum Source
-    let mut client = CurbyClient::new();
-    // Fetch 4KB of true randomness to seed simulations
-    let entropy = client.fetch_bulk_randomness(4096).await?;
+    let entropy: Vec<u8>;
+
+    if let (Some(db_ref), Some(batch_id)) = (&db, config.entropy_batch_id) {
+         // Load from DB
+         println!("Loading entropy from Batch {}", batch_id);
+         let rows = db_ref.get_batch_entropy(batch_id).await?;
+         let mut buffer = Vec::new();
+         for row in rows {
+             if let Ok(bytes) = hex::decode(row.hex_value) {
+                 buffer.extend(bytes);
+             }
+         }
+         if buffer.is_empty() {
+             // Fallback if batch empty
+             println!("Batch empty, fetching live.");
+             let mut client = CurbyClient::new();
+             entropy = client.fetch_bulk_randomness(4096).await?;
+         } else {
+             entropy = buffer;
+         }
+    } else {
+         let mut client = CurbyClient::new();
+         // Fetch 4KB of true randomness to seed simulations
+         entropy = client.fetch_bulk_randomness(4096).await?;
+    }
+
     let session = SimulationSession::new(entropy);
 
     // 2. BaZi Calculation (with Solar Terms and Quantum Mode)

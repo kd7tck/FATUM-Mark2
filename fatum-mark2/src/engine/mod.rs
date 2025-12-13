@@ -3,6 +3,8 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use serde::{Deserialize, Serialize};
 
+pub mod timeline;
+
 /// Represents a persistent session for running simulations.
 ///
 /// Holds the master seed derived from the Quantum Entropy source.
@@ -52,7 +54,7 @@ impl SimulationSession {
     }
 
     // Helper to get next random float [0, 1)
-    fn next_f64(&mut self, rng: &mut ChaCha20Rng) -> f64 {
+    pub fn next_f64(&mut self, rng: &mut ChaCha20Rng) -> f64 {
         // If we have at least 8 bytes left in pool, use them to form f64
         if self.pool_index + 8 <= self.entropy_pool.len() {
             let mut bytes = [0u8; 8];

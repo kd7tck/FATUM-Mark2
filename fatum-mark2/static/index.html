@@ -22,6 +22,7 @@
                 <button onclick="showTab('ziwei')" class="nav-btn">Zi Wei Dou Shu</button>
                 <button onclick="showTab('daliuren')" class="nav-btn">Da Liu Ren</button>
                 <button onclick="showTab('entanglement')" class="nav-btn">Entanglement</button>
+                <button onclick="showTab('manyworlds')" class="nav-btn">Many Worlds</button>
                 <button onclick="showTab('divination')" class="nav-btn">Divination</button>
                 <button onclick="showTab('history')" class="nav-btn">History</button>
             </nav>
@@ -243,6 +244,27 @@
                 </div>
             </section>
 
+            <!-- MANY WORLDS TAB -->
+            <section id="tab-manyworlds" class="tab-content" style="display:none;">
+                <h2>MANY WORLDS SIMULATION</h2>
+                <div class="panel">
+                    <p>Branching probability engine simulating alternate timelines of elemental flow.</p>
+                    <div class="form-group">
+                        <label>Subject Profile:</label>
+                        <select id="mw-profile"></select>
+                    </div>
+                    <div class="form-row">
+                         <div><label>Duration (Years):</label> <input type="number" id="mw-duration" value="10"></div>
+                         <div><label>Timelines:</label> <input type="number" id="mw-worlds" value="50"></div>
+                    </div>
+                    <button class="cyber-btn" onclick="runManyWorldsSimulation()">SIMULATE TIMELINES</button>
+                    <div id="mw-status" style="margin-top:10px; color:#0ff;"></div>
+                </div>
+                <div id="mw-chart-container" class="chart-container" style="height: 500px; border: 1px solid #333; margin-top:20px;">
+                    <!-- SVG Chart -->
+                </div>
+            </section>
+
             <!-- DIVINATION TAB -->
             <section id="tab-divination" class="tab-content" style="display:none;">
                 <h2>QUANTUM I CHING</h2>
@@ -275,11 +297,6 @@
     <script src="visual_feng_shui.js"></script>
     <script src="visual_zi_wei.js"></script>
     <script src="visual_da_liu_ren.js"></script>
-    <script>
-        // Additional Logic for Entropy Tab
-        // Merging this into visual_feng_shui.js would be cleaner, but I can inline here or append.
-        // Let's modify visual_feng_shui.js via replacement or just append logic there.
-        // I'll append to visual_feng_shui.js in next step.
-    </script>
+    <script src="visual_many_worlds.js"></script>
 </body>
 </html>

@@ -53,4 +53,29 @@ mod tests {
         assert_eq!(report1.winner, report2.winner);
         assert_eq!(report1.distribution, report2.distribution);
     }
+
+    #[test]
+    fn test_simulation_session_consumes_pool() {
+        // Create a pool with known bytes.
+        // 8 bytes make a f64.
+        // Let's create enough for 2 numbers.
+
+        let mut entropy = vec![0u8; 16];
+        // First 8 bytes: 0 (f64 close to 0.0)
+        // Next 8 bytes: all 1s (f64 close to 1.0)
+        for i in 8..16 {
+            entropy[i] = 0xFF;
+        }
+
+        let session = SimulationSession::new(entropy.clone());
+        let options = vec!["A".to_string(), "B".to_string()];
+
+        // Run 2 simulations.
+        let report = session.simulate_decision(&options, None, 2);
+
+        // Iteration 1: 0.0 -> A
+        // Iteration 2: ~1.0 -> B
+        assert_eq!(*report.distribution.get("A").unwrap(), 1);
+        assert_eq!(*report.distribution.get("B").unwrap(), 1);
+    }
 }

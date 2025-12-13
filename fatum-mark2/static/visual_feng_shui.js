@@ -12,6 +12,94 @@ function showTab(tabId) {
 
     if (tabId === 'profiles') loadProfiles();
     if (tabId === 'history') loadHistory();
+    if (tabId === 'entropy') loadEntropyBatches();
+    if (tabId === 'fengshui') updateEntropyDropdown();
+}
+
+// === ENTROPY ===
+async function createEntropyBatch() {
+    const name = document.getElementById('entropy-batch-name').value;
+    if (!name) return alert("Enter a name");
+
+    const res = await fetch('/api/entropy/batches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+    });
+    if (res.ok) {
+        document.getElementById('entropy-batch-name').value = "";
+        loadEntropyBatches();
+    }
+}
+
+async function loadEntropyBatches() {
+    const res = await fetch('/api/entropy/batches');
+    const batches = await res.json();
+    const list = document.getElementById('entropy-batch-list');
+    list.innerHTML = '';
+
+    // Check if harvest active
+    checkHarvestStatus();
+
+    batches.forEach(b => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        // Style based on size
+        const mb = (b.size_bytes / 1024).toFixed(2);
+
+        card.innerHTML = `
+            <h4>${b.name} <span style="font-size:0.8em; color:#888;">#${b.id}</span></h4>
+            <p>Size: ${b.count} Pulses (~${mb} KB)</p>
+            <p>Status: <span style="color:${b.status === 'collecting' ? 'var(--accent)' : '#888'}">${b.status}</span></p>
+            ${b.status === 'collecting' ? `<button class="cyber-btn small" onclick="startHarvest(${b.id})">HARVEST</button>` : ''}
+        `;
+        list.appendChild(card);
+    });
+}
+
+async function startHarvest(batchId) {
+    await fetch('/api/entropy/harvest/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ batch_id: batchId })
+    });
+    checkHarvestStatus();
+}
+
+async function stopHarvest() {
+    await fetch('/api/entropy/harvest/stop', { method: 'POST' });
+    checkHarvestStatus();
+    loadEntropyBatches();
+}
+
+async function checkHarvestStatus() {
+    const res = await fetch('/api/entropy/harvest/status');
+    const data = await res.json();
+    const panel = document.getElementById('active-harvest-panel');
+    if (data.active_batch_id) {
+        panel.style.display = 'block';
+        document.getElementById('harvest-batch-id').innerText = data.active_batch_id;
+    } else {
+        panel.style.display = 'none';
+    }
+}
+
+async function updateEntropyDropdown() {
+    const res = await fetch('/api/entropy/batches');
+    const batches = await res.json();
+    const select = document.getElementById('fs-entropy-source');
+    // Keep first option
+    select.innerHTML = '<option value="">Live Quantum Stream (Default)</option>';
+
+    batches.forEach(b => {
+        if (b.count > 0) {
+            const mb = (b.size_bytes / 1024).toFixed(2);
+            const opt = document.createElement('option');
+            opt.value = b.id;
+            opt.innerText = `Batch: ${b.name} (${mb} KB)`;
+            select.appendChild(opt);
+        }
+    });
 }
 
 // === PROFILES ===
@@ -147,13 +235,15 @@ function getElementColor(char) {
 async function runFengShui() {
     const profileVal = document.getElementById('fs-profile-select').value;
     const profile = profileVal ? JSON.parse(profileVal) : null;
+    const entropyBatch = document.getElementById('fs-entropy-source').value;
 
     const req = {
         construction_year: parseInt(document.getElementById('fs-year').value),
         facing_degrees: parseFloat(document.getElementById('fs-facing').value),
         intention: document.getElementById('fs-intention').value,
         quantum_mode: document.getElementById('fs-quantum').checked,
-        virtual_cures: window.virtualCures || []
+        virtual_cures: window.virtualCures || [],
+        entropy_batch_id: entropyBatch ? parseInt(entropyBatch) : null
     };
 
     if (profile) {

@@ -18,6 +18,7 @@ use crate::tools::ze_ri::{DateSelectionConfig, calculate_auspiciousness};
 use crate::tools::zi_wei::{ZiWeiConfig, generate_ziwei_chart};
 use crate::tools::da_liu_ren::{DaLiuRenConfig, generate_da_liu_ren};
 use crate::db::Db;
+use crate::services::entropy;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -38,6 +39,10 @@ pub async fn start_server() {
         .route("/api/tools/daliuren", post(handle_daliuren))
         .route("/api/profiles", get(list_profiles).post(create_profile))
         .route("/api/history", get(list_history).post(save_history))
+        .route("/api/entropy/batches", get(list_entropy_batches).post(create_entropy_batch))
+        .route("/api/entropy/harvest/start", post(start_harvest))
+        .route("/api/entropy/harvest/stop", post(stop_harvest))
+        .route("/api/entropy/harvest/status", get(harvest_status))
         .fallback_service(ServeDir::new("static"))
         .layer(Extension(shared_state));
 
@@ -60,9 +65,11 @@ struct FengShuiApiInput {
     intention: Option<String>,
     quantum_mode: Option<bool>,
     virtual_cures: Option<Vec<VirtualCure>>,
+    entropy_batch_id: Option<i64>,
 }
 
 async fn handle_fengshui(
+    Extension(state): Extension<AppState>,
     Json(payload): Json<FengShuiApiInput>,
 ) -> Json<serde_json::Value> {
     let now = chrono::Local::now();
@@ -81,15 +88,18 @@ async fn handle_fengshui(
         intention: payload.intention,
         quantum_mode: payload.quantum_mode.unwrap_or(false),
         virtual_cures: payload.virtual_cures,
+        entropy_batch_id: payload.entropy_batch_id,
     };
 
-    match generate_report(config).await {
+    // Need to pass DB reference to generate_report if using batch
+    match generate_report(config, Some(state.db.clone())).await {
         Ok(report) => Json(serde_json::to_value(report).unwrap()),
         Err(e) => Json(serde_json::json!({ "error": e.to_string() })),
     }
 }
 
 async fn handle_fengshui_pdf(
+    Extension(state): Extension<AppState>,
     Json(payload): Json<FengShuiApiInput>,
 ) -> Response {
     let now = chrono::Local::now();
@@ -108,9 +118,10 @@ async fn handle_fengshui_pdf(
         intention: payload.intention,
         quantum_mode: payload.quantum_mode.unwrap_or(false),
         virtual_cures: payload.virtual_cures,
+        entropy_batch_id: payload.entropy_batch_id,
     };
 
-    match generate_report(config).await {
+    match generate_report(config, Some(state.db.clone())).await {
         Ok(report) => {
             match generate_pdf(&report) {
                 Ok(pdf_bytes) => {
@@ -166,6 +177,74 @@ async fn handle_divination() -> Json<serde_json::Value> {
     } else {
         Json(serde_json::json!({ "error": "Failed to fetch entropy" }))
     }
+}
+
+// === ENTROPY HANDLERS ===
+
+#[derive(Deserialize)]
+struct CreateBatchInput {
+    name: String,
+}
+
+#[derive(Deserialize)]
+struct StartHarvestInput {
+    batch_id: i64,
+}
+
+async fn list_entropy_batches(
+    Extension(state): Extension<AppState>,
+) -> Json<serde_json::Value> {
+    // We should also get the size for each batch
+    match state.db.list_batches().await {
+        Ok(batches) => {
+            // Enrich with size
+            let mut result = Vec::new();
+            for b in batches {
+                let size = state.db.get_batch_size(b.id).await.unwrap_or(0);
+                result.push(serde_json::json!({
+                    "id": b.id,
+                    "name": b.name,
+                    "status": b.status,
+                    "created_at": b.created_at,
+                    "count": size,
+                    // Each pulse is 512 bits = 64 bytes
+                    "size_bytes": size * 64
+                }));
+            }
+            Json(serde_json::json!(result))
+        },
+        Err(e) => Json(serde_json::json!({ "error": e.to_string() })),
+    }
+}
+
+async fn create_entropy_batch(
+    Extension(state): Extension<AppState>,
+    Json(input): Json<CreateBatchInput>,
+) -> Json<serde_json::Value> {
+    match state.db.create_batch(&input.name).await {
+        Ok(id) => Json(serde_json::json!({ "id": id })),
+        Err(e) => Json(serde_json::json!({ "error": e.to_string() })),
+    }
+}
+
+async fn start_harvest(
+    Extension(state): Extension<AppState>,
+    Json(input): Json<StartHarvestInput>,
+) -> Json<serde_json::Value> {
+    entropy::start_harvesting(state.db.clone(), input.batch_id).await;
+    Json(serde_json::json!({ "status": "started" }))
+}
+
+async fn stop_harvest(
+    Extension(state): Extension<AppState>,
+) -> Json<serde_json::Value> {
+    entropy::stop_harvesting(state.db.clone()).await;
+    Json(serde_json::json!({ "status": "stopped" }))
+}
+
+async fn harvest_status() -> Json<serde_json::Value> {
+    let batch_id = entropy::get_harvest_status().await;
+    Json(serde_json::json!({ "active_batch_id": batch_id }))
 }
 
 // === DB HANDLERS ===

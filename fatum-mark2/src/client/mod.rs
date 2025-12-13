@@ -151,6 +151,11 @@ impl CurbyClient {
         Ok(buffer)
     }
 
+    /// Exposed method to fetch raw entropy for caching purposes.
+    pub async fn fetch_raw_entropy(&mut self) -> Result<Vec<u8>> {
+        self.fetch_single_pulse().await
+    }
+
     /// Fetches the raw randomness payload from the latest valid Pulse.
     async fn fetch_single_pulse(&mut self) -> Result<Vec<u8>> {
         let chain_id = self.get_quantum_chain_id().await?;

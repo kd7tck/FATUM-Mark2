@@ -85,15 +85,44 @@ h1 {
 
 @keyframes blink { 50% { opacity: 0; } }
 
+/* NAVIGATION */
+#main-nav {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.nav-group {
+    display: flex;
+    align-items: center;
+    border-right: 1px solid var(--grid-line);
+    padding-right: 10px;
+}
+
+.nav-group:last-child {
+    border-right: none;
+}
+
+.nav-label {
+    font-size: 0.7em;
+    color: #555;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    margin-right: 5px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
 nav .nav-btn {
     background: transparent;
     border: 1px solid var(--secondary);
     color: var(--secondary);
-    padding: 8px 16px;
-    margin-left: 5px;
+    padding: 6px 12px;
+    margin-left: 2px;
     cursor: pointer;
     font-family: 'Share Tech Mono', monospace;
     text-transform: uppercase;
+    font-size: 0.9em;
     transition: all 0.2s;
 }
 
@@ -122,14 +151,43 @@ main {
 }
 
 .sidebar {
-    width: 300px;
+    width: 320px;
     background: var(--panel-color);
     padding: 20px;
     border: 1px solid var(--grid-line);
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 10px;
     overflow-y: auto;
+}
+
+/* DETAILS / SUMMARY STYLES */
+details {
+    border: 1px solid var(--grid-line);
+    margin-bottom: 5px;
+}
+
+summary {
+    background: rgba(0, 255, 157, 0.1);
+    color: var(--primary);
+    padding: 10px;
+    cursor: pointer;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.9em;
+    outline: none;
+    user-select: none;
+}
+
+summary:hover {
+    background: rgba(0, 255, 157, 0.2);
+}
+
+.details-content {
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    background: rgba(0,0,0,0.2);
 }
 
 .viewport {
@@ -200,6 +258,20 @@ input, select {
     color: var(--text);
     padding: 5px;
     font-family: inherit;
+}
+
+/* TOOLTIP */
+.tooltip-box {
+    position: fixed;
+    background: rgba(0,0,0,0.9);
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    padding: 10px;
+    font-size: 0.9em;
+    z-index: 2000;
+    pointer-events: none;
+    box-shadow: 0 0 10px var(--primary);
+    max-width: 300px;
 }
 
 .svg-container {
@@ -279,6 +351,7 @@ svg text {
     border: 1px solid var(--text);
     cursor: grab;
     user-select: none;
+    font-size: 0.8em;
 }
 
 .data-grid {
@@ -311,4 +384,9 @@ svg text {
 .large-text {
     font-size: 1.2em;
     line-height: 1.5;
+}
+
+.small-text {
+    font-size: 0.8em;
+    color: #888;
 }

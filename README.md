@@ -56,35 +56,67 @@ FATUM-MARK2 is a Rust-based backend that merges traditional Chinese Metaphysics 
 *   **Persistence:** SQLite (SQLx) for user history, profiles, and **Quantum Entropy Batches**.
 *   **Math:** `rand_chacha` for simulations (fallback), `genpdf` for report generation.
 
-## Installation & Usage
+## Installation Guide (Windows Step-by-Step)
+
+This guide is designed for beginners. Follow these steps exactly to get the program running on your Windows computer.
+
+### Step 1: Install Rust
+Rust is the programming language this tool is built with. You need to install the compiler.
+1.  Go to [rustup.rs](https://rustup.rs).
+2.  Click the button that says **"DOWNLOAD RUSTUP-INIT.EXE (64-BIT)"**.
+3.  Run the downloaded file.
+4.  A command prompt window will open. Type `1` and press **Enter** to proceed with the default installation.
+5.  Wait for the installation to finish. When it says "Rust is installed now. Great!", press **Enter** to close the window.
+    *   *Note: If it asks you to install "Visual C++ Build Tools", follow the instructions it gives you. You might need to download and install the Visual Studio Installer and select the "Desktop development with C++" workload.*
+
+### Step 2: Install Git
+Git is a tool to download the code from the internet.
+1.  Go to [git-scm.com/download/win](https://git-scm.com/download/win).
+2.  Click **"Click here to download"** to get the setup file.
+3.  Run the installer. You can just click **"Next"** through all the options until it installs.
+
+### Step 3: Download the Code
+1.  Press the **Windows Key** on your keyboard, type `PowerShell`, and press **Enter**.
+2.  In the blue window that appears, type the following command and press **Enter**:
+    ```powershell
+    git clone https://github.com/kd7tck/FATUM-Mark2.git
+    ```
+3.  This will create a folder named `FATUM-Mark2` with all the project files.
+
+### Step 4: Run the Program
+1.  Still in the PowerShell window, type this command to enter the project folder:
+    ```powershell
+    cd FATUM-Mark2
+    ```
+2.  Now, type this command to compile and start the program:
+    ```powershell
+    cargo run
+    ```
+    *   *Note: The first time you run this, it will take a few minutes to download dependencies and compile everything. Be patient!*
+3.  Once it's done, you will see a message saying the server is running (usually something like `Listening on 0.0.0.0:3000`).
+
+### Step 5: Open the App
+1.  Open your web browser (Chrome, Firefox, Edge, etc.).
+2.  In the address bar, type: `http://127.0.0.1:3000`
+3.  Press **Enter**. You should now see the FATUM-MARK2 interface!
+
+---
+
+## Installation (Linux / macOS)
 
 ### Prerequisites
-*   Rust (latest stable)
-*   SQLite (Only for Linux/macOS dynamic linking. Windows uses bundled SQLite).
+*   **Rust:** Install via `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+*   **System Dependencies:**
+    *   **Debian/Ubuntu:** `sudo apt install libsqlite3-dev libfontconfig1-dev libssl-dev`
+    *   **Fedora:** `sudo dnf install sqlite-devel fontconfig-devel openssl-devel`
+    *   **macOS:** `brew install sqlite fontconfig openssl`
 
-### Windows Support
-FATUM-MARK2 is optimized for easy compilation on Windows.
-*   **SQLite:** The project now bundles `libsqlite3`, so you **do not** need to manually install SQLite or copy `sqlite3.dll`.
-*   **TLS:** Uses native Windows SChannel for secure connections.
-
-To build on Windows, simply run:
-```powershell
-cargo run
-```
-
-### Running the Server
-The application runs as a local web server.
-
+### Running
 ```bash
-# Clone the repository
 git clone https://github.com/kd7tck/FATUM-Mark2.git
 cd FATUM-Mark2
-
-# Run the server
 cargo run
 ```
-
-Once running, open your browser to `http://127.0.0.1:3000`.
 
 ### Development
 *   **Frontend:** The frontend assets are located in `static/`.

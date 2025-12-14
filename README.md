@@ -77,8 +77,8 @@ The application runs as a local web server.
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-repo/fatum-mark2.git
-cd fatum-mark2
+git clone https://github.com/kd7tck/FATUM-Mark2.git
+cd FATUM-Mark2
 
 # Run the server
 cargo run

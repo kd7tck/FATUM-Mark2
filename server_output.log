@@ -1,6 +1,0 @@
-    Blocking waiting for file lock on build directory
-   Compiling fatum-mark2 v0.1.0 (/app/fatum-mark2)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1m 04s
-     Running `target/debug/fatum-mark2`
-Starting Web Server...
-FATUM-MARK2 Server listening on http://127.0.0.1:3000
